@@ -4,6 +4,8 @@
 #include "HDCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/PawnMovementComponent.h"
+
 
 // Sets default values
 AHDCharacter::AHDCharacter()
@@ -16,6 +18,9 @@ AHDCharacter::AHDCharacter()
 	// since this is attached to a pawn, use the pawn's rotation to control the camera
 	SpringArmComp->bUsePawnControlRotation = true;
 	SpringArmComp->SetupAttachment(RootComponent);
+
+	GetMovementComponent()->GetNavAgentPropertiesRef().bCanCrouch = true;
+	GetMovementComponent()->GetNavAgentPropertiesRef().bCanJump = true;
 
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(SpringArmComp);
@@ -39,6 +44,16 @@ void AHDCharacter::MoveRight(float Value)
 	AddMovementInput(GetActorRightVector(), Value);
 }
 
+void AHDCharacter::BeginCrouch()
+{
+	Crouch();
+}
+
+void AHDCharacter::EndCrouch()
+{
+	UnCrouch();
+}
+
 // Called every frame
 void AHDCharacter::Tick(float DeltaTime)
 {
@@ -56,6 +71,11 @@ void AHDCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	
 	PlayerInputComponent->BindAxis("LookUp", this, &AHDCharacter::AddControllerPitchInput);
 	PlayerInputComponent->BindAxis("Turn", this, &AHDCharacter::AddControllerYawInput);
+
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AHDCharacter::BeginCrouch);
+	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &AHDCharacter::EndCrouch);
+
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AHDCharacter::Jump);
 
 }
 

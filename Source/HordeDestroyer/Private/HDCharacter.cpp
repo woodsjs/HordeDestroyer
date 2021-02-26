@@ -76,6 +76,6 @@ void AHDCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &AHDCharacter::EndCrouch);
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AHDCharacter::Jump);
-
+	
 }
 

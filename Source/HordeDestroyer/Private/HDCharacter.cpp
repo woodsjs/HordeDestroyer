@@ -79,3 +79,15 @@ void AHDCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	
 }
 
+// let's not start line tracing from our eye location, we want to do this from teh camera location 
+// because it's acting as our eyes in this setup
+FVector AHDCharacter::GetPawnViewLocation() const
+{
+	if (CameraComp)
+	{
+		return CameraComp->GetComponentLocation();
+	}
+
+	return Super::GetPawnViewLocation();
+}
+

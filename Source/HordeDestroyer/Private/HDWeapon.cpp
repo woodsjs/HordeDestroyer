@@ -4,6 +4,8 @@
 #include "HDWeapon.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
 
 // Sets default values
 AHDWeapon::AHDWeapon()
@@ -14,6 +16,10 @@ AHDWeapon::AHDWeapon()
 	MeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComp"));
 	RootComponent = MeshComp;
 
+	MuzzleSocketName = "MuzzleFlashSocket";
+	// In the tracer emitter, we have a vector param called this
+	// We change the vector later down the line
+	TracerTargetName = "BeamEnd";
 }
 
 // Called when the game starts or when spawned
@@ -49,6 +55,11 @@ void AHDWeapon::fire()
 		// if we want to set up nice effects, we need complex (like head vs foot shot)
 		QueryParams.bTraceComplex = true;
 
+		// Particle "Target" Parameter value. 
+		// If we hit nothing, we just go to the trace end
+		// otherwise we go to the Hit.ImpactPoint
+		FVector TracerEndPoint = TraceEnd;
+
 		FHitResult Hit;
 		if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, TraceEnd, ECC_Visibility, QueryParams))
 		{
@@ -56,9 +67,34 @@ void AHDWeapon::fire()
 			AActor* HitActor = Hit.GetActor();
 
 			UGameplayStatics::ApplyPointDamage(HitActor, 20.0f, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType);
+
+			if (ImpactEffect)
+			{
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
+			}
+
+			TracerEndPoint = Hit.ImpactPoint;
 		}
 
-		DrawDebugLine(GetWorld(), EyeLocation, TraceEnd, FColor::White, false, 1.0f, 0, 1.0f);
+		//DrawDebugLine(GetWorld(), EyeLocation, TraceEnd, FColor::White, false, 1.0f, 0, 1.0f);
+
+
+		if (MuzzleEffect)
+		{
+			UGameplayStatics::SpawnEmitterAttached(MuzzleEffect, MeshComp, MuzzleSocketName);
+		}
+
+		if (TracerEffect)
+		{
+			FVector MuzzleLocation = MeshComp->GetSocketLocation(MuzzleSocketName);
+			UParticleSystemComponent* TracerComp = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), TracerEffect, MuzzleLocation);
+
+			if (TracerComp)
+			{
+				// Set the vector in the emitter, that has the name stored in TracerTargetName, to the end point value
+				TracerComp->SetVectorParameter(TracerTargetName, TracerEndPoint);
+			}
+		}
 	}
 }
 

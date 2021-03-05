@@ -8,6 +8,7 @@
 
 class USphereComponent;
 class UProjectileMovementComponent;
+class UParticleSystem;
 
 UCLASS()
 class HORDEDESTROYER_API AHDProjectileGrenade : public AActor
@@ -18,25 +19,36 @@ public:
 	// Sets default values for this actor's properties
 	AHDProjectileGrenade();
 
-	/** called when projectile hits something */
 	UFUNCTION()
-		void OnDetonate(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
-
-	/** Returns CollisionComp subobject **/
-	USphereComponent* GetCollisionComp() const { return CollisionComp; }
+	void OnDetonate();
 
 	/** Returns ProjectileMovement subobject **/
 	UProjectileMovementComponent* GetProjectileMovement() const { return ProjectileMovement; }
 
-protected:
+	void Launched();
 
-	/** Sphere collision component */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
-		USphereComponent* CollisionComp;
+protected:
 
 	/** Projectile movement component */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
-		UProjectileMovementComponent* ProjectileMovement;
+	UProjectileMovementComponent* ProjectileMovement;
+
+	// The particle affect for explosion
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Projectile")
+	UParticleSystem* DetonateEffect;
+
+	//UPROPERTY(EditDefaultsOnly, Category = "Projectile")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UMeshComponent* MeshComp;
+
+	void DetonateProjectile();
+
+	FTimerHandle TimerHandle_DetonateProjectile;
+
+	// used to set the length of time before the projectile detonates
+	UPROPERTY(EditInstanceOnly, category = "Projectile")
+	float DetonateTime = 1.0f;
+
 
 public:	
 	// Called every frame

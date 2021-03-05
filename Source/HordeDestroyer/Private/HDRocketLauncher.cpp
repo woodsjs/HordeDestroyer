@@ -5,23 +5,16 @@
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
-//#include "GameFramework/ProjectileMovementComponent.h"
-//#include "Components/SphereComponent.h"
+#include "HDProjectileGrenade.h"
 
 // Sets default values
 AHDRocketLauncher::AHDRocketLauncher()
 {
 }
 
-//void AHDRocketLauncher::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
-//{
-//
-//}
-
 void AHDRocketLauncher::fire()
 {
 	// Trace the world from pawn eyes to crosshair location
-
 	AActor* MyOwner = GetOwner();
 
 	if (MyOwner)
@@ -49,24 +42,19 @@ void AHDRocketLauncher::fire()
 		// otherwise we go to the Hit.ImpactPoint
 		FVector TracerEndPoint = TraceEnd;
 
-		// ***********************
 	// try and fire a projectile
-		//if (ProjectileClass)
-		//{
-		//	// Grabs location from the mesh that must have a socket called "Muzzle" in his skeleton
-		//	FVector MuzzleLocation = GunMeshComponent->GetSocketLocation("Muzzle");
-		//	// Use controller rotation which is our view direction in first person
-		//	FRotator MuzzleRotation = GetControlRotation();
+		if (ProjectileClass)
+		{
 
-		//	//Set Spawn Collision Handling Override
-		//	FActorSpawnParameters ActorSpawnParams;
-		//	ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-		//	ActorSpawnParams.Instigator = this;
+			//Set Spawn Collision Handling Override
+			FActorSpawnParameters ActorSpawnParams;
+			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+			ActorSpawnParams.Instigator = Cast<APawn>(MyOwner);
 
-		//	// spawn the projectile at the muzzle
-		//	GetWorld()->SpawnActor<AFPSProjectile>(ProjectileClass, MuzzleLocation, MuzzleRotation, ActorSpawnParams);
-		//}
-		// **************************
+			// spawn the projectile at the muzzle
+			AHDProjectileGrenade* grenade = GetWorld()->SpawnActor<AHDProjectileGrenade>(ProjectileClass, EyeLocation, EyeRotation, ActorSpawnParams);
+			grenade->Launched();
+		}
 
 		if (MuzzleEffect)
 		{

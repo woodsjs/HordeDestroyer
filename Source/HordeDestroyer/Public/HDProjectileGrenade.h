@@ -9,6 +9,7 @@
 class USphereComponent;
 class UProjectileMovementComponent;
 class UParticleSystem;
+class UStaticMeshComponent;
 
 UCLASS()
 class HORDEDESTROYER_API AHDProjectileGrenade : public AActor
@@ -33,13 +34,16 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	UProjectileMovementComponent* ProjectileMovement;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
+		USphereComponent* CollisionComp;
+
 	// The particle affect for explosion
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Projectile")
 	UParticleSystem* DetonateEffect;
 
 	//UPROPERTY(EditDefaultsOnly, Category = "Projectile")
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	UMeshComponent* MeshComp;
+	UStaticMeshComponent* MeshComp;
 
 	void DetonateProjectile();
 

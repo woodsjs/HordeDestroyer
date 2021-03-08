@@ -5,6 +5,9 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/DamageType.h"
+
+#include "DrawDebugHelpers.h"
 
 // Sets default values
 AHDProjectileGrenade::AHDProjectileGrenade()
@@ -12,32 +15,35 @@ AHDProjectileGrenade::AHDProjectileGrenade()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-		// Use a sphere as a simple collision representation
-	CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
-	CollisionComp->InitSphereRadius(5.0f);
-	CollisionComp->SetCollisionProfileName("Projectile");
-	//CollisionComp->OnComponentHit.AddDynamic(this, &AHDProjectileGrenade::OnDetonate);	// set up a notification for when this component hits something blocking
+	//	// Use a sphere as a simple collision representation
+	//  // we might want this if it's sticky, or times and explode on impact
+	//CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
+	//CollisionComp->InitSphereRadius(5.0f);
+	//CollisionComp->SetCollisionProfileName("Projectile");
+	////CollisionComp->OnComponentHit.AddDynamic(this, &AHDProjectileGrenade::OnDetonate);	// set up a notification for when this component hits something blocking
 
-	// Players can't walk on it
-	CollisionComp->SetWalkableSlopeOverride(FWalkableSlopeOverride(WalkableSlope_Unwalkable, 0.f));
-	CollisionComp->CanCharacterStepUpOn = ECB_No;
+	//// Players can't walk on it
+	//CollisionComp->SetWalkableSlopeOverride(FWalkableSlopeOverride(WalkableSlope_Unwalkable, 0.f));
+	//CollisionComp->CanCharacterStepUpOn = ECB_No;
 
-	// Set as root component
-	RootComponent = CollisionComp;
+	//// Set as root component
+	//RootComponent = CollisionComp;
 
 	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
-	MeshComp->SetupAttachment(CollisionComp);
+	//MeshComp->SetupAttachment(CollisionComp);
+	RootComponent = MeshComp;
 
 	// Use a ProjectileMovementComponent to govern this projectile's movement
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileComp"));
-	ProjectileMovement->UpdatedComponent = CollisionComp;
+	//ProjectileMovement->UpdatedComponent = CollisionComp;
+	ProjectileMovement->UpdatedComponent = MeshComp;
 	ProjectileMovement->InitialSpeed = 3000.f;
 	ProjectileMovement->MaxSpeed = 3000.f;
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	ProjectileMovement->bShouldBounce = true;
 
 	// Die after 3 seconds by default
-	InitialLifeSpan = 3.0f;
+	//InitialLifeSpan = 3.0f;
 
 	//SetReplicates(true);
 	//SetReplicateMovement(true);
@@ -62,10 +68,8 @@ void AHDProjectileGrenade::Tick(float DeltaTime)
 //void AHDProjectileGrenade::OnDetonate(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 void AHDProjectileGrenade::OnDetonate()
 {
-	// Only add impulse and destroy projectile if we hit a physics
-	// TODO: Need to change this, we don't care if it's hitting something
-	// but if something is in the radius, use UGameplayStatics::ApplyPointDamage
-	//OtherComp->AddImpulseAtLocation(GetVelocity() * 100.0f, GetActorLocation());
+	TArray<AActor*> ignoreList;
+	UGameplayStatics::ApplyRadialDamage(GetWorld(), 50.0f, this->GetActorLocation(), 50.0f, DamageType, ignoreList);
 
 	if (DetonateEffect)
 	{

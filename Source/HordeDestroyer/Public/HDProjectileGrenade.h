@@ -6,10 +6,11 @@
 #include "GameFramework/Actor.h"
 #include "HDProjectileGrenade.generated.h"
 
-class USphereComponent;
+//class USphereComponent;
 class UProjectileMovementComponent;
 class UParticleSystem;
 class UStaticMeshComponent;
+class UDamageType;
 
 UCLASS()
 class HORDEDESTROYER_API AHDProjectileGrenade : public AActor
@@ -20,8 +21,6 @@ public:
 	// Sets default values for this actor's properties
 	AHDProjectileGrenade();
 
-	UFUNCTION()
-	void OnDetonate();
 
 	/** Returns ProjectileMovement subobject **/
 	UProjectileMovementComponent* GetProjectileMovement() const { return ProjectileMovement; }
@@ -30,12 +29,16 @@ public:
 
 protected:
 
+	UFUNCTION()
+	void OnDetonate();
+
 	/** Projectile movement component */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	UProjectileMovementComponent* ProjectileMovement;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
-		USphereComponent* CollisionComp;
+	// we only want this if we explode on collision, or make sticky grenades
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
+	//	USphereComponent* CollisionComp;
 
 	// The particle affect for explosion
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Projectile")
@@ -45,13 +48,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* MeshComp;
 
-	void DetonateProjectile();
-
 	FTimerHandle TimerHandle_DetonateProjectile;
 
 	// used to set the length of time before the projectile detonates
 	UPROPERTY(EditInstanceOnly, category = "Projectile")
 	float DetonateTime = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TSubclassOf<UDamageType> DamageType;
 
 
 public:	

@@ -18,16 +18,18 @@ class HORDEDESTROYER_API AHDWeapon : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AHDWeapon();
+	
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+		virtual void fire();
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+
+
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USkeletalMeshComponent* MeshComp;
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	virtual void fire();
+	void PlayFireEffects(FVector TracerEndPoint);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	TSubclassOf<UDamageType> DamageType;
@@ -46,8 +48,7 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FName TracerTargetName;
+
 public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
 
 };

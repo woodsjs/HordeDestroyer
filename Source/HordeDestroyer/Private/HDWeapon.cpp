@@ -6,6 +6,11 @@
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Chaos/ChaosEngineInterface.h"
+
+#define SURFACE_FLESHDEFAULT	SurfaceType1
+#define SURFACE_FLESHVULNERABLE SurfaceType2
 
 static int32 DebugWeaponDrawing = 0;
 FAutoConsoleVariableRef CVARDebugWeaponDrawing (
@@ -55,6 +60,7 @@ void AHDWeapon::fire()
 		// gives exact collision of where we hit
 		// if we want to set up nice effects, we need complex (like head vs foot shot)
 		QueryParams.bTraceComplex = true;
+		QueryParams.bReturnPhysicalMaterial = true;
 
 		// Particle "Target" Parameter value. 
 		// If we hit nothing, we just go to the trace end
@@ -69,9 +75,24 @@ void AHDWeapon::fire()
 
 			UGameplayStatics::ApplyPointDamage(HitActor, 20.0f, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType);
 
-			if (ImpactEffect)
+			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
+
+			UParticleSystem* SelectedEffect = nullptr;
+			switch (SurfaceType)
 			{
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
+			case SURFACE_FLESHDEFAULT:
+			case SURFACE_FLESHVULNERABLE:
+				SelectedEffect = FleshImpactEffect;
+				break;
+			default:
+				SelectedEffect = DefaultImpactEffect;
+				break;
+			}
+
+
+			if (SelectedEffect)
+			{
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
 			}
 
 			TracerEndPoint = Hit.ImpactPoint;
@@ -106,5 +127,24 @@ void AHDWeapon::PlayFireEffects(FVector TracerEndPoint)
 			TracerComp->SetVectorParameter(TracerTargetName, TracerEndPoint);
 		}
 	}
+
+	APawn* MyOwner = Cast<APawn>(GetOwner());
+	if (MyOwner)
+	{
+		APlayerController* PC = Cast<APlayerController>(MyOwner->GetController());
+
+		if (PC)
+		{
+			PC->ClientStartCameraShake(FireCameraShake );
+		}
+	}
+
+
+
 }
+
+
+
+
+
 

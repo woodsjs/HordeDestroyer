@@ -55,6 +55,9 @@ protected:
 	AHDWeapon* CurrentWeapon;
 	void Fire();
 
+	void StartFire();
+	void StopFire();
+
 	UPROPERTY(EditDefaultsOnly, Category = "Player")
 	TSubclassOf<AHDWeapon> StarterWeaponClass;
 

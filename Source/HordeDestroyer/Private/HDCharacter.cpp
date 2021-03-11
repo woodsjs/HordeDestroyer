@@ -82,10 +82,23 @@ void AHDCharacter::EndZoom()
 
 void AHDCharacter::Fire()
 {
+	//if (CurrentWeapon)
+	//{
+	//	CurrentWeapon->Fire();
+	//}
+}
+
+void AHDCharacter::StartFire()
+{
 	if (CurrentWeapon)
 	{
-		CurrentWeapon->fire();
+		CurrentWeapon->StartFire();
 	}
+}
+
+void AHDCharacter::StopFire()
+{
+	CurrentWeapon->StopFire();
 }
 
 // Called every frame
@@ -121,7 +134,11 @@ void AHDCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Zoom", IE_Pressed, this, &AHDCharacter::BeginZoom);
 	PlayerInputComponent->BindAction("Zoom", IE_Released, this, &AHDCharacter::EndZoom);
 
-	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AHDCharacter::Fire);
+	//PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AHDCharacter::Fire);
+
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AHDCharacter::StartFire);
+	PlayerInputComponent->BindAction("Fire", IE_Released, this, &AHDCharacter::StopFire);
+
 
 }
 

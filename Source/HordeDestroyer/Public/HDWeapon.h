@@ -19,13 +19,18 @@ class HORDEDESTROYER_API AHDWeapon : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AHDWeapon();
-	
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-		virtual void fire();
 
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+		virtual void StartFire();
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+		virtual void StopFire();
 protected:
 
+	virtual void BeginPlay();
 
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+		virtual void Fire();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USkeletalMeshComponent* MeshComp;
@@ -56,4 +61,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TSubclassOf<UCameraShakeBase> FireCameraShake;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float BaseDamage;
+
+	FTimerHandle TimerHandle_TimeBetweenShots;
+
+	float LastFiredTime;
+
+	// Bullets per minute fired by weapon
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float RateOfFire;
+
+	// Derived from RateOfFire
+	float TimeBetweenShots;
 };

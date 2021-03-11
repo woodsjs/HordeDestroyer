@@ -8,9 +8,10 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Chaos/ChaosEngineInterface.h"
+#include "HordeDestroyer/HordeDestroyer.h"
 
-#define SURFACE_FLESHDEFAULT	SurfaceType1
-#define SURFACE_FLESHVULNERABLE SurfaceType2
+//#define SURFACE_FLESHDEFAULT	SurfaceType1
+//#define SURFACE_FLESHVULNERABLE SurfaceType2
 
 static int32 DebugWeaponDrawing = 0;
 FAutoConsoleVariableRef CVARDebugWeaponDrawing (
@@ -30,10 +31,21 @@ AHDWeapon::AHDWeapon()
 	// In the tracer emitter, we have a vector param called this
 	// We change the vector later down the line
 	TracerTargetName = "BeamEnd";
+
+	BaseDamage = 20.0f;
+
+	RateOfFire = 600;
+}
+
+void AHDWeapon::BeginPlay()
+{
+	Super::BeginPlay();
+
+	TimeBetweenShots = 60/RateOfFire;
 }
 
 
-void AHDWeapon::fire()
+void AHDWeapon::Fire()
 {
 	// Trace the world from pawn eyes to crosshair location
 
@@ -68,14 +80,21 @@ void AHDWeapon::fire()
 		FVector TracerEndPoint = TraceEnd;
 
 		FHitResult Hit;
-		if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, TraceEnd, ECC_Visibility, QueryParams))
+		if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, TraceEnd, COLLISION_WEAPON, QueryParams))
 		{
 			// Blocking hit, so process damage
 			AActor* HitActor = Hit.GetActor();
 
-			UGameplayStatics::ApplyPointDamage(HitActor, 20.0f, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType);
 
 			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
+
+			float ActualDamage = BaseDamage;
+			if (SurfaceType == SURFACE_FLESHVULNERABLE)
+			{
+				ActualDamage *= 4.0f;
+			}
+
+			UGameplayStatics::ApplyPointDamage(HitActor, ActualDamage, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType);
 
 			UParticleSystem* SelectedEffect = nullptr;
 			switch (SurfaceType)
@@ -105,7 +124,23 @@ void AHDWeapon::fire()
 		}
 
 		PlayFireEffects(TracerEndPoint);
+
+		LastFiredTime = GetWorld()->TimeSeconds;
 	}
+}
+
+void AHDWeapon::StartFire()
+{
+	// Set our delay to either 0 to fire NOW
+	// or to the difference between when we last fired plus our delay, minus what time it is right now
+	float FirstDelay = FMath::Max( LastFiredTime + TimeBetweenShots - GetWorld()->TimeSeconds, 0.0f);
+
+	GetWorldTimerManager().SetTimer(TimerHandle_TimeBetweenShots, this, &AHDWeapon::Fire, TimeBetweenShots, true, FirstDelay);
+}
+
+void AHDWeapon::StopFire()
+{
+	GetWorldTimerManager().ClearTimer(TimerHandle_TimeBetweenShots);
 }
 
 void AHDWeapon::PlayFireEffects(FVector TracerEndPoint)

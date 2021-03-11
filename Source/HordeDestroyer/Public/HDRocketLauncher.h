@@ -27,6 +27,6 @@ public:
 protected:
 
 	//UFUNCTION(BlueprintCallable, Category = "Weapon")
-	virtual void fire() override;
+	virtual void Fire() override;
 
 };

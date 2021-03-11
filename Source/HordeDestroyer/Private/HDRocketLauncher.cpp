@@ -12,7 +12,7 @@ AHDRocketLauncher::AHDRocketLauncher()
 {
 }
 
-void AHDRocketLauncher::fire()
+void AHDRocketLauncher::Fire()
 {
 	// Trace the world from pawn eyes to crosshair location
 	AActor* MyOwner = GetOwner();

@@ -10,6 +10,7 @@ class USkeletalMeshComponent;
 class UDamageType;
 class UParticleSystem;
 class UCameraShakeBase;
+class UCurveFloat;
 
 UCLASS()
 class HORDEDESTROYER_API AHDWeapon : public AActor
@@ -74,4 +75,11 @@ protected:
 
 	// Derived from RateOfFire
 	float TimeBetweenShots;
+
+	// recoil params
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	UCurveFloat* HorizontalRecoilCurve;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	UCurveFloat* VerticalRecoilCurve;
 };

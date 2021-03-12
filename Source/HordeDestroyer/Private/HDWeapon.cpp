@@ -10,8 +10,8 @@
 #include "Chaos/ChaosEngineInterface.h"
 #include "HordeDestroyer/HordeDestroyer.h"
 
-//#define SURFACE_FLESHDEFAULT	SurfaceType1
-//#define SURFACE_FLESHVULNERABLE SurfaceType2
+// test for recoil
+//#include "Curves/CurveFloat.h"
 
 static int32 DebugWeaponDrawing = 0;
 FAutoConsoleVariableRef CVARDebugWeaponDrawing (
@@ -126,6 +126,20 @@ void AHDWeapon::Fire()
 		PlayFireEffects(TracerEndPoint);
 
 		LastFiredTime = GetWorld()->TimeSeconds;
+
+		// we need to allow our designer to choose the curve!
+		// Do we need this in tick?
+		float HorizontalRecoil = 0.1f;
+
+		if (HorizontalRecoilCurve)
+		{
+			// need to figure out how to get the time herew
+			HorizontalRecoil = HorizontalRecoilCurve->GetFloatValue(0.0f);
+		}
+		APawn* OwnerPawn = Cast<APawn>(MyOwner);
+		OwnerPawn->AddControllerPitchInput(-0.5f);
+		OwnerPawn->AddControllerYawInput(HorizontalRecoilCurve->GetFloatValue(0.0f));
+		
 	}
 }
 

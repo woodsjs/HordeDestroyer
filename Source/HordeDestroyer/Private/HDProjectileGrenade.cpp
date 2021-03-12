@@ -69,7 +69,8 @@ void AHDProjectileGrenade::Tick(float DeltaTime)
 void AHDProjectileGrenade::OnDetonate()
 {
 	TArray<AActor*> ignoreList;
-	UGameplayStatics::ApplyRadialDamage(GetWorld(), 50.0f, this->GetActorLocation(), 50.0f, DamageType, ignoreList);
+	bool bDidDamage = UGameplayStatics::ApplyRadialDamage(GetWorld(), 50.0f, this->GetActorLocation(), 20.0f, DamageType, ignoreList);
+	UE_LOG(LogTemp, Log, TEXT("did damage %d"), bDidDamage);
 
 	if (DetonateEffect)
 	{

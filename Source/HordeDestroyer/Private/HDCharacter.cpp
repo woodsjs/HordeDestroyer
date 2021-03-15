@@ -6,6 +6,9 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "HDWeapon.h"
+#include "GameFramework/Character.h"
+#include "Components/CapsuleComponent.h"
+#include "HordeDestroyer/HordeDestroyer.h"
 
 // Sets default values
 AHDCharacter::AHDCharacter()
@@ -21,6 +24,8 @@ AHDCharacter::AHDCharacter()
 
 	GetMovementComponent()->GetNavAgentPropertiesRef().bCanCrouch = true;
 	GetMovementComponent()->GetNavAgentPropertiesRef().bCanJump = true;
+
+	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Ignore);
 
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(SpringArmComp);

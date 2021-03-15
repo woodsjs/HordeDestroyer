@@ -12,7 +12,7 @@ AHDRocketLauncher::AHDRocketLauncher()
 {
 }
 
-void AHDRocketLauncher::fire()
+void AHDRocketLauncher::Fire()
 {
 	// Trace the world from pawn eyes to crosshair location
 	AActor* MyOwner = GetOwner();
@@ -56,21 +56,6 @@ void AHDRocketLauncher::fire()
 			grenade->Launched();
 		}
 
-		if (MuzzleEffect)
-		{
-			UGameplayStatics::SpawnEmitterAttached(MuzzleEffect, MeshComp, MuzzleSocketName);
-		}
-
-		if (TracerEffect)
-		{
-			FVector MuzzleLocation = MeshComp->GetSocketLocation(MuzzleSocketName);
-			UParticleSystemComponent* TracerComp = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), TracerEffect, MuzzleLocation);
-
-			if (TracerComp)
-			{
-				// Set the vector in the emitter, that has the name stored in TracerTargetName, to the end point value
-				TracerComp->SetVectorParameter(TracerTargetName, TracerEndPoint);
-			}
-		}
+		PlayFireEffects(TracerEndPoint);
 	}
 }

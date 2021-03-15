@@ -6,12 +6,23 @@
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Chaos/ChaosEngineInterface.h"
+#include "HordeDestroyer/HordeDestroyer.h"
+
+// test for recoil
+//#include "Curves/CurveFloat.h"
+
+static int32 DebugWeaponDrawing = 0;
+FAutoConsoleVariableRef CVARDebugWeaponDrawing (
+	TEXT("HD.DebugWeapons"), 
+	DebugWeaponDrawing, 
+	TEXT("Draw Debug Lines for Weapons"), 
+	ECVF_Cheat);
 
 // Sets default values
 AHDWeapon::AHDWeapon()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
 
 	MeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComp"));
 	RootComponent = MeshComp;
@@ -20,18 +31,25 @@ AHDWeapon::AHDWeapon()
 	// In the tracer emitter, we have a vector param called this
 	// We change the vector later down the line
 	TracerTargetName = "BeamEnd";
+
+	BaseDamage = 20.0f;
+
+	RateOfFire = 600;
 }
 
-// Called when the game starts or when spawned
 void AHDWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 
+	TimeBetweenShots = 60/RateOfFire;
 }
 
-void AHDWeapon::fire()
+
+void AHDWeapon::Fire()
 {
 	// Trace the world from pawn eyes to crosshair location
+
+	UE_LOG(LogTemp, Log, TEXT("Boom!"));
 
 	AActor* MyOwner = GetOwner();
 
@@ -54,6 +72,7 @@ void AHDWeapon::fire()
 		// gives exact collision of where we hit
 		// if we want to set up nice effects, we need complex (like head vs foot shot)
 		QueryParams.bTraceComplex = true;
+		QueryParams.bReturnPhysicalMaterial = true;
 
 		// Particle "Target" Parameter value. 
 		// If we hit nothing, we just go to the trace end
@@ -61,47 +80,120 @@ void AHDWeapon::fire()
 		FVector TracerEndPoint = TraceEnd;
 
 		FHitResult Hit;
-		if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, TraceEnd, ECC_Visibility, QueryParams))
+		if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, TraceEnd, COLLISION_WEAPON, QueryParams))
 		{
 			// Blocking hit, so process damage
 			AActor* HitActor = Hit.GetActor();
 
-			UGameplayStatics::ApplyPointDamage(HitActor, 20.0f, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType);
 
-			if (ImpactEffect)
+			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
+
+			float ActualDamage = BaseDamage;
+			if (SurfaceType == SURFACE_FLESHVULNERABLE)
 			{
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
+				ActualDamage *= 4.0f;
+			}
+
+			UGameplayStatics::ApplyPointDamage(HitActor, ActualDamage, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType);
+
+			UParticleSystem* SelectedEffect = nullptr;
+			switch (SurfaceType)
+			{
+			case SURFACE_FLESHDEFAULT:
+			case SURFACE_FLESHVULNERABLE:
+				SelectedEffect = FleshImpactEffect;
+				break;
+			default:
+				SelectedEffect = DefaultImpactEffect;
+				break;
+			}
+
+
+			if (SelectedEffect)
+			{
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
 			}
 
 			TracerEndPoint = Hit.ImpactPoint;
 		}
 
-		//DrawDebugLine(GetWorld(), EyeLocation, TraceEnd, FColor::White, false, 1.0f, 0, 1.0f);
 
-
-		if (MuzzleEffect)
+		if (DebugWeaponDrawing > 0)
 		{
-			UGameplayStatics::SpawnEmitterAttached(MuzzleEffect, MeshComp, MuzzleSocketName);
+			DrawDebugLine(GetWorld(), EyeLocation, TraceEnd, FColor::White, false, 1.0f, 0, 1.0f);
 		}
 
-		if (TracerEffect)
-		{
-			FVector MuzzleLocation = MeshComp->GetSocketLocation(MuzzleSocketName);
-			UParticleSystemComponent* TracerComp = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), TracerEffect, MuzzleLocation);
+		PlayFireEffects(TracerEndPoint);
 
-			if (TracerComp)
-			{
-				// Set the vector in the emitter, that has the name stored in TracerTargetName, to the end point value
-				TracerComp->SetVectorParameter(TracerTargetName, TracerEndPoint);
-			}
+		LastFiredTime = GetWorld()->TimeSeconds;
+
+		// we need to allow our designer to choose the curve!
+		// Do we need this in tick?
+		float HorizontalRecoil = 0.1f;
+
+		if (HorizontalRecoilCurve)
+		{
+			// need to figure out how to get the time herew
+			HorizontalRecoil = HorizontalRecoilCurve->GetFloatValue(0.0f);
 		}
+		APawn* OwnerPawn = Cast<APawn>(MyOwner);
+		OwnerPawn->AddControllerPitchInput(-0.5f);
+		OwnerPawn->AddControllerYawInput(HorizontalRecoilCurve->GetFloatValue(0.0f));
+		
 	}
 }
 
-// Called every frame
-void AHDWeapon::Tick(float DeltaTime)
+void AHDWeapon::StartFire()
 {
-	Super::Tick(DeltaTime);
+	// Set our delay to either 0 to fire NOW
+	// or to the difference between when we last fired plus our delay, minus what time it is right now
+	float FirstDelay = FMath::Max( LastFiredTime + TimeBetweenShots - GetWorld()->TimeSeconds, 0.0f);
+
+	GetWorldTimerManager().SetTimer(TimerHandle_TimeBetweenShots, this, &AHDWeapon::Fire, TimeBetweenShots, true, FirstDelay);
+}
+
+void AHDWeapon::StopFire()
+{
+	GetWorldTimerManager().ClearTimer(TimerHandle_TimeBetweenShots);
+}
+
+void AHDWeapon::PlayFireEffects(FVector TracerEndPoint)
+{
+
+	if (MuzzleEffect)
+	{
+		UGameplayStatics::SpawnEmitterAttached(MuzzleEffect, MeshComp, MuzzleSocketName);
+	}
+
+	if (TracerEffect)
+	{
+		FVector MuzzleLocation = MeshComp->GetSocketLocation(MuzzleSocketName);
+		UParticleSystemComponent* TracerComp = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), TracerEffect, MuzzleLocation);
+
+		if (TracerComp)
+		{
+			// Set the vector in the emitter, that has the name stored in TracerTargetName, to the end point value
+			TracerComp->SetVectorParameter(TracerTargetName, TracerEndPoint);
+		}
+	}
+
+	APawn* MyOwner = Cast<APawn>(GetOwner());
+	if (MyOwner)
+	{
+		APlayerController* PC = Cast<APlayerController>(MyOwner->GetController());
+
+		if (PC)
+		{
+			PC->ClientStartCameraShake(FireCameraShake );
+		}
+	}
+
+
 
 }
+
+
+
+
+
 

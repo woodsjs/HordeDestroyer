@@ -9,6 +9,8 @@
 class USkeletalMeshComponent;
 class UDamageType;
 class UParticleSystem;
+class UCameraShakeBase;
+class UCurveFloat;
 
 UCLASS()
 class HORDEDESTROYER_API AHDWeapon : public AActor
@@ -19,15 +21,22 @@ public:
 	// Sets default values for this actor's properties
 	AHDWeapon();
 
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+		virtual void StartFire();
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+		virtual void StopFire();
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+
+	virtual void BeginPlay();
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+		virtual void Fire();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USkeletalMeshComponent* MeshComp;
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	virtual void fire();
+	void PlayFireEffects(FVector TracerEndPoint);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	TSubclassOf<UDamageType> DamageType;
@@ -39,15 +48,38 @@ protected:
 	UParticleSystem* MuzzleEffect;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	UParticleSystem* ImpactEffect;
+	UParticleSystem* DefaultImpactEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	UParticleSystem* FleshImpactEffect;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	UParticleSystem* TracerEffect;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FName TracerTargetName;
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TSubclassOf<UCameraShakeBase> FireCameraShake;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float BaseDamage;
+
+	FTimerHandle TimerHandle_TimeBetweenShots;
+
+	float LastFiredTime;
+
+	// Bullets per minute fired by weapon
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float RateOfFire;
+
+	// Derived from RateOfFire
+	float TimeBetweenShots;
+
+	// recoil params
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	UCurveFloat* HorizontalRecoilCurve;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	UCurveFloat* VerticalRecoilCurve;
 };

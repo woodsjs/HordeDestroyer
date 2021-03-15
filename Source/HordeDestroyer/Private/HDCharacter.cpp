@@ -5,7 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
-
+#include "HDWeapon.h"
 
 // Sets default values
 AHDCharacter::AHDCharacter()
@@ -25,13 +25,29 @@ AHDCharacter::AHDCharacter()
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(SpringArmComp);
 
+	ZoomedFOV = 65.0f;
+	ZoomInterpSpeed = 20.0f;
+
+	WeaponAttachSocketName = "hand_r_weapon_socket";
 }
 
 // Called when the game starts or when spawned
 void AHDCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	DefaultFOV = CameraComp->FieldOfView;
+
+	// Spawn Default Weapon
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	CurrentWeapon = GetWorld()->SpawnActor<AHDWeapon>(StarterWeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SetOwner(this);
+		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+	}
 }
 
 void AHDCharacter::MoveForward(float Value)
@@ -54,10 +70,48 @@ void AHDCharacter::EndCrouch()
 	UnCrouch();
 }
 
+void AHDCharacter::BeginZoom()
+{
+	bWantsToZoom = true;
+}
+
+void AHDCharacter::EndZoom()
+{
+	bWantsToZoom = false;
+}
+
+void AHDCharacter::Fire()
+{
+	//if (CurrentWeapon)
+	//{
+	//	CurrentWeapon->Fire();
+	//}
+}
+
+void AHDCharacter::StartFire()
+{
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->StartFire();
+	}
+}
+
+void AHDCharacter::StopFire()
+{
+	CurrentWeapon->StopFire();
+}
+
 // Called every frame
 void AHDCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// we put this in tick so we could interpolate this!
+	// zoom our FOV so we have a look down sight
+	float TargetFOV = bWantsToZoom ? ZoomedFOV : DefaultFOV;
+	float NewFOV = FMath::FInterpTo(CameraComp->FieldOfView, TargetFOV, DeltaTime, ZoomInterpSpeed);
+
+	CameraComp->SetFieldOfView(NewFOV);
 
 }
 
@@ -76,7 +130,16 @@ void AHDCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &AHDCharacter::EndCrouch);
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AHDCharacter::Jump);
-	
+
+	PlayerInputComponent->BindAction("Zoom", IE_Pressed, this, &AHDCharacter::BeginZoom);
+	PlayerInputComponent->BindAction("Zoom", IE_Released, this, &AHDCharacter::EndZoom);
+
+	//PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AHDCharacter::Fire);
+
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AHDCharacter::StartFire);
+	PlayerInputComponent->BindAction("Fire", IE_Released, this, &AHDCharacter::StopFire);
+
+
 }
 
 // let's not start line tracing from our eye location, we want to do this from teh camera location 

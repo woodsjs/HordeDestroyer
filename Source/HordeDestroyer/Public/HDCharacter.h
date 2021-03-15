@@ -8,6 +8,7 @@
 
 class UCameraComponent;
 class USpringArmComponent;
+class AHDWeapon;
 
 UCLASS()
 class HORDEDESTROYER_API AHDCharacter : public ACharacter
@@ -36,6 +37,32 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USpringArmComponent* SpringArmComp;
 
+	// aim down sites
+	bool bWantsToZoom;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player")
+	float ZoomedFOV;
+
+	float DefaultFOV;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player", meta = (ClampMin = 0.1, ClampMax = 100.0))
+	float ZoomInterpSpeed;
+
+	void BeginZoom();
+	void EndZoom();
+
+	// Fire weapon
+	AHDWeapon* CurrentWeapon;
+	void Fire();
+
+	void StartFire();
+	void StopFire();
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player")
+	TSubclassOf<AHDWeapon> StarterWeaponClass;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Player")
+	FName WeaponAttachSocketName;
 
 public:	
 	// Called every frame

@@ -9,6 +9,7 @@
 class UCameraComponent;
 class USpringArmComponent;
 class AHDWeapon;
+class UHDHealthComponent;
 
 UCLASS()
 class HORDEDESTROYER_API AHDCharacter : public ACharacter
@@ -63,6 +64,16 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Player")
 	FName WeaponAttachSocketName;
+
+	// add health component
+	UHDHealthComponent* MyHealthComp;
+
+	UFUNCTION()
+	void OnHealthChanged(UHDHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
+
+	// pawn died previously
+	UPROPERTY(BlueprintReadOnly, Category = "Player")
+	bool bDied;
 
 public:	
 	// Called every frame

@@ -33,6 +33,6 @@ protected:
 		
 public:
 
-	UPROPERTY(BlueprintAssignable, Category = "Events")
+	UPROPERTY(VisibleAnywhere, BlueprintAssignable, Category = "Events")
 	FOnHealthChangedSignature OnHealthChanged;
 };

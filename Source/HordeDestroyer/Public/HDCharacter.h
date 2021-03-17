@@ -66,6 +66,7 @@ protected:
 	FName WeaponAttachSocketName;
 
 	// add health component
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UHDHealthComponent* MyHealthComp;
 
 	UFUNCTION()

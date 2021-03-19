@@ -4,6 +4,20 @@
 #include "HDExplosiveActor.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/HDHealthComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialInterface.h"
+#include "PhysicsEngine/RadialForceComponent.h"
+#include "Components/SphereComponent.h"
+#include "Components/PrimitiveComponent.h"
+#include "Engine/EngineTypes.h"
+#include "../HordeDestroyer.h"
+
+static int32 DebugExplosiveDrawing = 0;
+FAutoConsoleVariableRef CVARDebugExplosiveDrawing(
+	TEXT("HD.DebugExplosives"),
+	DebugExplosiveDrawing,
+	TEXT("Draw Debug Info for Explosives"),
+	ECVF_Cheat);
 
 // Sets default values
 AHDExplosiveActor::AHDExplosiveActor()
@@ -12,16 +26,99 @@ AHDExplosiveActor::AHDExplosiveActor()
 	PrimaryActorTick.bCanEverTick = true;
 
 	BaseMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BaseMesh"));
+	BaseMesh->SetCollisionObjectType(ECC_PhysicsBody);
 	RootComponent = BaseMesh;
 
-	ActorHealth = CreateDefaultSubobject<UHDHealthComponent>(TEXT("ActorHealth"));
+	// Use a sphere as a simple collision representation
+	DamageSphere = CreateDefaultSubobject<USphereComponent>(TEXT("DamageSphereComp"));
+	DamageSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	DamageSphere->SetGenerateOverlapEvents(true);
+
+	DamageSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+	//DamageSphere->SetCollisionResponseToAllChannels(ECR_Overlap);
+
+	// Anything that is seen, should be blown away
+	FCollisionResponseContainer OverlapChannels = FCollisionResponseContainer(ECollisionResponse::ECR_Ignore);
+	OverlapChannels.SetResponse(ECC_Destructible, ECR_Overlap);
+	OverlapChannels.SetResponse(ECC_Pawn, ECR_Overlap);
+	OverlapChannels.SetResponse(ECC_PhysicsBody, ECR_Overlap);
+	OverlapChannels.SetResponse(ECC_Vehicle, ECR_Overlap);
+
+	DamageSphere->SetCollisionResponseToChannels(OverlapChannels);
+
+	DamageSphere->SetSphereRadius(BaseForceRadius);
+	DamageSphere->SetupAttachment(RootComponent);
+
+	MyHealthComp = CreateDefaultSubobject<UHDHealthComponent>(TEXT("MyHealthComp"));
+
 }
 
 // Called when the game starts or when spawned
 void AHDExplosiveActor::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	MyHealthComp->OnHealthChanged.AddDynamic(this, &AHDExplosiveActor::OnHealthChanged);
+
+	FVector Position = GetActorLocation();
+	FQuat Rotation;
+	BaseMesh->GetRelativeRotationFromWorld(Rotation);
+
+	// Get all components that overlap with our sphere. We'll use the Visibility collision channel
+	// Anything that can be seen needs to be blown away
+	//FCollisionObjectQueryParams CollisionObjectQP;
+	//CollisionObjectQP.AllObjects;
+	//DamageSphere->ComponentOverlapMulti(OverlappingActors, GetWorld(), Position, Rotation, 
+	//	ECollisionChannel::ECC_Visibility, FComponentQueryParams::DefaultComponentQueryParams, CollisionObjectQP );	
+	DamageSphere->ComponentOverlapMulti(OverlappingActors, GetWorld(), Position, Rotation, 
+		ECollisionChannel::ECC_Visibility);
+
+	if (DebugExplosiveDrawing > 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Radius %f"), DamageSphere->GetUnscaledSphereRadius());
+	}
+
+}
+
+// might want another mesh as well to set when we explode
+void AHDExplosiveActor::OnHealthChanged(UHDHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
+{
+	if (Health <= 0.0f && !bExploded)
+	{
+		//Die!
+
+		bExploded = true;
+
+		// play particle effect
+		if (ExplosionEffect)
+		{
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEffect, this->GetActorLocation(), this->GetActorRotation());
+		}
+
+		// set exploded material
+		if (ExplodedMaterial)
+		{
+			BaseMesh->SetMaterial(0, ExplodedMaterial);
+		}
+
+		// Look at each component and apply a radial impulse, originating from our actor's location
+		// We can do different if we'd like
+		// Also set the force and strength to be params
+		FVector Position = GetActorLocation();
+
+		for (FOverlapResult OverlappedActor : OverlappingActors)
+		{
+			if (DebugExplosiveDrawing > 0)
+			{
+				UE_LOG(LogTemp, Log, TEXT("We have an overlap %s"), *OverlappedActor.GetActor()->GetName());
+			}
+
+			// Simulate Physics needs to be on for this next bit to work
+			// so let's do that
+			//OverlappedActor.GetComponent()->SetSimulatePhysics(true);
+			OverlappedActor.GetComponent()->AddRadialImpulse(Position, BaseForceRadius, BaseForceStrength, ERadialImpulseFalloff::RIF_Linear, true);
+		}
+	}
 }
 
 // Called every frame

@@ -10,6 +10,8 @@ class UStaticMeshComponent;
 class UMaterial;
 class UParticleSystem;
 class UHDHealthComponent;
+class USphereComponent;
+class UPrimitiveComponent;
 
 UCLASS()
 class HORDEDESTROYER_API AHDExplosiveActor : public AActor
@@ -33,10 +35,33 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Explosive")
 	UParticleSystem* ExplosionEffect;
 
-	UPROPERTY(EditDefaultsOnly, Category = "ActorHealth")
-	UHDHealthComponent* ActorHealth;
+	// add health component
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UHDHealthComponent* MyHealthComp;
+
+	UFUNCTION()
+	void OnHealthChanged(UHDHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
+
+	// pawn died previously
+	UPROPERTY(BlueprintReadOnly, Category = "Explosive")
+	bool bExploded;
+
+	// our force
+	UPROPERTY(EditDefaultsOnly, Category = "Explosive")
+	float BaseForceStrength;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Explosive")
+	float BaseForceRadius;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Explosive")
+	USphereComponent* DamageSphere;
+
+	TArray<UPrimitiveComponent*> OverlappedActors;
+	TArray<FOverlapResult> OverlappingActors;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
 
 };

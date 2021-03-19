@@ -1,5 +1,48 @@
 // Fill out your copyright notice in the Description page of Project Settings.
+/*
 
+	In your header file
+		// add health component
+		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+		UHDHealthComponent* MyHealthComp;
+
+		UFUNCTION()
+		void OnHealthChanged(UHDHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
+
+		// pawn died previously
+		UPROPERTY(BlueprintReadOnly, Category = "Player")
+		bool bDied;
+
+	In your constructor
+		MyHealthComp = CreateDefaultSubobject<UHDHealthComponent>(TEXT("MyHealthComp"));
+
+	In begin play
+		MyHealthComp->OnHealthChanged.AddDynamic(this, &<<Name of class>>::OnHealthChanged);
+
+	Add a method
+		void AHDCharacter::OnHealthChanged(UHDHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType,
+		class AController* InstigatedBy, AActor* DamageCauser)
+		{
+			if (Health <= 0.0f && !bDied)
+			{
+				//Die!
+
+				bDied = true;
+
+				//stop movement
+				GetMovementComponent()->StopMovementImmediately();
+
+				// don't allow collisions
+				GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+				// we shouldn't possess this anymore
+				DetachFromControllerPendingDestroy();
+
+				SetLifeSpan(10);
+
+			}
+		}
+*/
 
 #include "Components/HDHealthComponent.h"
 

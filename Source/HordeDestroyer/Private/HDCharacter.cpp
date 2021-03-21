@@ -6,6 +6,10 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "HDWeapon.h"
+#include "GameFramework/Character.h"
+#include "Components/CapsuleComponent.h"
+#include "HordeDestroyer/HordeDestroyer.h"
+#include "Components/HDHealthComponent.h"
 
 // Sets default values
 AHDCharacter::AHDCharacter()
@@ -21,6 +25,10 @@ AHDCharacter::AHDCharacter()
 
 	GetMovementComponent()->GetNavAgentPropertiesRef().bCanCrouch = true;
 	GetMovementComponent()->GetNavAgentPropertiesRef().bCanJump = true;
+
+	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Ignore);
+
+	MyHealthComp = CreateDefaultSubobject<UHDHealthComponent>(TEXT("MyHealthComp"));
 
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(SpringArmComp);
@@ -48,6 +56,8 @@ void AHDCharacter::BeginPlay()
 		CurrentWeapon->SetOwner(this);
 		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
 	}
+
+	MyHealthComp->OnHealthChanged.AddDynamic(this, &AHDCharacter::OnHealthChanged);
 }
 
 void AHDCharacter::MoveForward(float Value)
@@ -99,6 +109,29 @@ void AHDCharacter::StartFire()
 void AHDCharacter::StopFire()
 {
 	CurrentWeapon->StopFire();
+}
+
+void AHDCharacter::OnHealthChanged(UHDHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, 
+	class AController* InstigatedBy, AActor* DamageCauser)
+{
+	if (Health <= 0.0f && !bDied)
+	{
+		//Die!
+
+		bDied = true;
+
+		//stop movement
+		GetMovementComponent()->StopMovementImmediately();
+
+		// don't allow collisions
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		// we shouldn't possess this anymore
+		DetachFromControllerPendingDestroy();
+
+		SetLifeSpan(10);
+
+	}
 }
 
 // Called every frame

@@ -12,6 +12,7 @@ class UParticleSystem;
 class UHDHealthComponent;
 class USphereComponent;
 class UPrimitiveComponent;
+class UDamageType;
 
 UCLASS()
 class HORDEDESTROYER_API AHDExplosiveActor : public AActor
@@ -50,14 +51,27 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Explosive")
 	float BaseForceStrength;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Explosive")
-	float BaseForceRadius;
+	//UPROPERTY(EditDefaultsOnly, Category = "Explosive")
+	//float BaseForceRadius;
 
+	// our damage
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Explosive")
 	USphereComponent* DamageSphere;
 
 	TArray<UPrimitiveComponent*> OverlappedActors;
 	TArray<FOverlapResult> OverlappingActors;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Explosive")
+	TSubclassOf<UDamageType> AppliedDamageType;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Explosive")
+	float BaseDamage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Explosive")
+	float MinAppliedDamage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Explosive")
+	float DamageFalloff;
 
 public:	
 	// Called every frame

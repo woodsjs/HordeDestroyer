@@ -22,6 +22,8 @@ FAutoConsoleVariableRef CVARDebugExplosiveDrawing(
 // Sets default values
 AHDExplosiveActor::AHDExplosiveActor()
 {
+	// lol looking at URadialForceComponent, I just recreated part of what it does.  
+
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -35,7 +37,6 @@ AHDExplosiveActor::AHDExplosiveActor()
 	DamageSphere->SetGenerateOverlapEvents(true);
 
 	DamageSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
-	//DamageSphere->SetCollisionResponseToAllChannels(ECR_Overlap);
 
 	// Anything that is seen, should be blown away
 	FCollisionResponseContainer OverlapChannels = FCollisionResponseContainer(ECollisionResponse::ECR_Ignore);
@@ -46,7 +47,7 @@ AHDExplosiveActor::AHDExplosiveActor()
 
 	DamageSphere->SetCollisionResponseToChannels(OverlapChannels);
 
-	DamageSphere->SetSphereRadius(BaseForceRadius);
+	//DamageSphere->SetSphereRadius(BaseForceRadius);
 	DamageSphere->SetupAttachment(RootComponent);
 
 	MyHealthComp = CreateDefaultSubobject<UHDHealthComponent>(TEXT("MyHealthComp"));
@@ -66,10 +67,6 @@ void AHDExplosiveActor::BeginPlay()
 
 	// Get all components that overlap with our sphere. We'll use the Visibility collision channel
 	// Anything that can be seen needs to be blown away
-	//FCollisionObjectQueryParams CollisionObjectQP;
-	//CollisionObjectQP.AllObjects;
-	//DamageSphere->ComponentOverlapMulti(OverlappingActors, GetWorld(), Position, Rotation, 
-	//	ECollisionChannel::ECC_Visibility, FComponentQueryParams::DefaultComponentQueryParams, CollisionObjectQP );	
 	DamageSphere->ComponentOverlapMulti(OverlappingActors, GetWorld(), Position, Rotation, 
 		ECollisionChannel::ECC_Visibility);
 
@@ -86,7 +83,6 @@ void AHDExplosiveActor::OnHealthChanged(UHDHealthComponent* HealthComp, float He
 	if (Health <= 0.0f && !bExploded)
 	{
 		//Die!
-
 		bExploded = true;
 
 		// play particle effect
@@ -108,6 +104,8 @@ void AHDExplosiveActor::OnHealthChanged(UHDHealthComponent* HealthComp, float He
 
 		for (FOverlapResult OverlappedActor : OverlappingActors)
 		{
+			float BaseForceRadius = this->DamageSphere->GetUnscaledSphereRadius();
+
 			if (DebugExplosiveDrawing > 0)
 			{
 				UE_LOG(LogTemp, Log, TEXT("We have an overlap %s"), *OverlappedActor.GetActor()->GetName());
@@ -115,8 +113,11 @@ void AHDExplosiveActor::OnHealthChanged(UHDHealthComponent* HealthComp, float He
 
 			// Simulate Physics needs to be on for this next bit to work
 			// so let's do that
-			//OverlappedActor.GetComponent()->SetSimulatePhysics(true);
 			OverlappedActor.GetComponent()->AddRadialImpulse(Position, BaseForceRadius, BaseForceStrength, ERadialImpulseFalloff::RIF_Linear, true);
+
+			TArray<AActor*> IgnoreActor;
+			UGameplayStatics::ApplyRadialDamageWithFalloff(GetWorld(), BaseDamage, MinAppliedDamage,
+				Position, 0.0f, BaseForceRadius, DamageFalloff, AppliedDamageType, IgnoreActor);
 		}
 	}
 }

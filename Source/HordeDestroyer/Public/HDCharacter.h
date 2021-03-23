@@ -53,6 +53,7 @@ protected:
 	void EndZoom();
 
 	// Fire weapon
+	UPROPERTY(Replicated)
 	AHDWeapon* CurrentWeapon;
 	void Fire();
 
@@ -75,6 +76,8 @@ protected:
 	// pawn died previously
 	UPROPERTY(BlueprintReadOnly, Category = "Player")
 	bool bDied;
+
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:	
 	// Called every frame

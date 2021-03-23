@@ -10,6 +10,7 @@
 #include "Components/CapsuleComponent.h"
 #include "HordeDestroyer/HordeDestroyer.h"
 #include "Components/HDHealthComponent.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 AHDCharacter::AHDCharacter()
@@ -46,18 +47,23 @@ void AHDCharacter::BeginPlay()
 
 	DefaultFOV = CameraComp->FieldOfView;
 
-	// Spawn Default Weapon
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	MyHealthComp->OnHealthChanged.AddDynamic(this, &AHDCharacter::OnHealthChanged);
 
-	CurrentWeapon = GetWorld()->SpawnActor<AHDWeapon>(StarterWeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
-	if (CurrentWeapon)
+	if (GetLocalRole() == ROLE_Authority)
 	{
-		CurrentWeapon->SetOwner(this);
-		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+		// Spawn Default Weapon
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		CurrentWeapon = GetWorld()->SpawnActor<AHDWeapon>(StarterWeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+		if (CurrentWeapon)
+		{
+			CurrentWeapon->SetOwner(this);
+			CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+		}
 	}
 
-	MyHealthComp->OnHealthChanged.AddDynamic(this, &AHDCharacter::OnHealthChanged);
+
 }
 
 void AHDCharacter::MoveForward(float Value)
@@ -108,7 +114,10 @@ void AHDCharacter::StartFire()
 
 void AHDCharacter::StopFire()
 {
-	CurrentWeapon->StopFire();
+	if ( CurrentWeapon )
+	{
+		CurrentWeapon->StopFire();
+	}
 }
 
 void AHDCharacter::OnHealthChanged(UHDHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, 
@@ -132,6 +141,13 @@ void AHDCharacter::OnHealthChanged(UHDHealthComponent* HealthComp, float Health,
 		SetLifeSpan(10);
 
 	}
+}
+
+void AHDCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AHDCharacter, CurrentWeapon);
 }
 
 // Called every frame

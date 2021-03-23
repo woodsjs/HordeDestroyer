@@ -49,6 +49,13 @@ void AHDWeapon::BeginPlay()
 
 void AHDWeapon::Fire()
 {
+	// if this is not the server
+	// call the server RPC then leave
+	if (GetLocalRole() < ROLE_Authority)
+	{
+		ServerFire();
+	}
+
 	// Trace the world from pawn eyes to crosshair location
 
 	UE_LOG(LogTemp, Log, TEXT("Boom!"));
@@ -194,7 +201,17 @@ void AHDWeapon::PlayFireEffects(FVector TracerEndPoint)
 
 }
 
+void AHDWeapon::ServerFire_Implementation()
+{
+	// this is only called on the server
+	Fire();
+}
 
+// anticheat
+bool AHDWeapon::ServerFire_Validate()
+{
+	return true;
+}
 
 
 

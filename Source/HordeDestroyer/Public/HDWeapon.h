@@ -82,4 +82,8 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	UCurveFloat* VerticalRecoilCurve;
+
+	// server replicated data
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerFire();
 };

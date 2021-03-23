@@ -12,6 +12,20 @@ class UParticleSystem;
 class UCameraShakeBase;
 class UCurveFloat;
 
+// Contains info on single hitscan weapon linetrace
+USTRUCT()
+struct FHitScanTrace
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	FVector_NetQuantize TraceFrom;
+
+	UPROPERTY()
+	FVector_NetQuantize TraceTo;
+};
+
 UCLASS()
 class HORDEDESTROYER_API AHDWeapon : public AActor
 {
@@ -84,6 +98,17 @@ protected:
 	UCurveFloat* VerticalRecoilCurve;
 
 	// server replicated data
+	// Fire our weapon
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerFire();
+
+	// Hitscan data
+	UPROPERTY(ReplicatedUsing=OnRep_HitScanTrace)
+	FHitScanTrace HitScanTrace;
+
+	UFUNCTION()
+	void OnRep_HitScanTrace();
+
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 };

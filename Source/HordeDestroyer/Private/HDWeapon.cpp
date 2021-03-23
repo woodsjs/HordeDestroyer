@@ -9,6 +9,7 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Chaos/ChaosEngineInterface.h"
 #include "HordeDestroyer/HordeDestroyer.h"
+#include "Net/UnrealNetwork.h"
 
 // test for recoil
 //#include "Curves/CurveFloat.h"
@@ -134,6 +135,13 @@ void AHDWeapon::Fire()
 
 		PlayFireEffects(TracerEndPoint);
 
+		// Replicate endpoint only, clients can derive the start point on their own
+		// server only
+		if (GetLocalRole() == ROLE_Authority)
+		{
+			HitScanTrace.TraceTo = TracerEndPoint;
+		}
+
 		LastFiredTime = GetWorld()->TimeSeconds;
 
 		// we need to allow our designer to choose the curve!
@@ -213,6 +221,20 @@ bool AHDWeapon::ServerFire_Validate()
 	return true;
 }
 
+void AHDWeapon::OnRep_HitScanTrace()
+{
+	// Play effects
+	PlayFireEffects(HitScanTrace.TraceTo);
+}
 
 
+void AHDWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	// since we're already playing the effects on the owning client,
+	// we don't need to replicate this back to the same owning client
+	// so COND_SkipOwner...
+	DOREPLIFETIME_CONDITION(AHDWeapon, HitScanTrace, COND_SkipOwner);
+}
 

@@ -30,6 +30,7 @@ AHDCharacter::AHDCharacter()
 	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Ignore);
 
 	MyHealthComp = CreateDefaultSubobject<UHDHealthComponent>(TEXT("MyHealthComp"));
+	MyHealthComp->SetIsReplicated(true);
 
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(SpringArmComp);
@@ -49,6 +50,8 @@ void AHDCharacter::BeginPlay()
 
 	MyHealthComp->OnHealthChanged.AddDynamic(this, &AHDCharacter::OnHealthChanged);
 
+	// spawn weapons from the server side
+	// this way everyone sees em
 	if (GetLocalRole() == ROLE_Authority)
 	{
 		// Spawn Default Weapon
@@ -148,6 +151,7 @@ void AHDCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AHDCharacter, CurrentWeapon);
+	DOREPLIFETIME(AHDCharacter, bDied);
 }
 
 // Called every frame

@@ -45,6 +45,7 @@
 */
 
 #include "Components/HDHealthComponent.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values for this component's properties
 UHDHealthComponent::UHDHealthComponent()
@@ -52,9 +53,11 @@ UHDHealthComponent::UHDHealthComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
+	DefaultHealth = 100.0f;
+
+	//SetIsReplicated(true);
 
 	// ...
-	DefaultHealth = 100;
 }
 
 
@@ -64,17 +67,20 @@ void UHDHealthComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	AActor* MyOwner = GetOwner();
-	if (MyOwner)
+	if (GetOwner()->GetLocalRole() == ROLE_Authority)
 	{
-		// Set up a subscription and handler for OnTakeAnyDamage, so we can respond to damage events
-		MyOwner->OnTakeAnyDamage.AddDynamic(this, &UHDHealthComponent::HandleTakeAnyDamage);
+		AActor* MyOwner = GetOwner();
+		if (MyOwner)
+		{
+			// Set up a subscription and handler for OnTakeAnyDamage, so we can respond to damage events
+			MyOwner->OnTakeAnyDamage.AddDynamic(this, &UHDHealthComponent::HandleTakeAnyDamage);
+		}
 	}
 
 	Health = DefaultHealth;
 }
 
-//void UHDHealthComponent::HandleTakeAnyDamage(AActor OnTakeAnyDamage, AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
+// stole this code
 void UHDHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
 {
 	if (Damage <= 0.0f)
@@ -89,4 +95,9 @@ void UHDHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage,
 	OnHealthChanged.Broadcast(this, Health, Damage, DamageType, InstigatedBy, DamageCauser);
 }
 
+void UHDHealthComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME(UHDHealthComponent, Health);
+}

@@ -55,7 +55,7 @@ void AHDWeapon::BeginPlay()
 void AHDWeapon::Fire()
 {
 	// if this is not the server
-	// call the server RPC then leave
+	// call the server RPC
 	if (GetLocalRole() < ROLE_Authority)
 	{
 		ServerFire();

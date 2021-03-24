@@ -23,8 +23,12 @@ protected:
 	virtual void BeginPlay() override;
 
 	// let's replicate health around
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "HealthComponent")
+	//UPROPERTY(Replicated, ReplicatedUsing=onRep_Health, BlueprintReadOnly, Category = "HealthComponent")
+	UPROPERTY(ReplicatedUsing=onRep_Health, BlueprintReadOnly, Category = "HealthComponent")
 	float Health;
+
+	UFUNCTION()
+	void onRep_Health(float OldHealth);
 
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

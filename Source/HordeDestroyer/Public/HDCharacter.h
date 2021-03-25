@@ -55,9 +55,11 @@ protected:
 	// Fire weapon
 	UPROPERTY(Replicated)
 	AHDWeapon* CurrentWeapon;
+
 	void Fire();
 
 	void StartFire();
+	
 	void StopFire();
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player")

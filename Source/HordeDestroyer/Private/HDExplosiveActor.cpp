@@ -11,6 +11,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "Engine/EngineTypes.h"
 #include "../HordeDestroyer.h"
+#include "Net/UnrealNetwork.h"
 
 static int32 DebugExplosiveDrawing = 0;
 FAutoConsoleVariableRef CVARDebugExplosiveDrawing(
@@ -51,7 +52,10 @@ AHDExplosiveActor::AHDExplosiveActor()
 	DamageSphere->SetupAttachment(RootComponent);
 
 	MyHealthComp = CreateDefaultSubobject<UHDHealthComponent>(TEXT("MyHealthComp"));
+	MyHealthComp->SetIsReplicated(true);
 
+	SetReplicates(true);
+	SetReplicateMovement(true);
 }
 
 // Called when the game starts or when spawned
@@ -80,45 +84,16 @@ void AHDExplosiveActor::BeginPlay()
 // might want another mesh as well to set when we explode
 void AHDExplosiveActor::OnHealthChanged(UHDHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
 {
+	// this happens on the server only
+	// because the server changes bExplode to true, then when the 
+	// client gets to it, it's too late
+	// So instead we listen for bExploded on the client side and handle any events on client there
 	if (Health <= 0.0f && !bExploded)
 	{
 		//Die!
 		bExploded = true;
-
-		// play particle effect
-		if (ExplosionEffect)
-		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEffect, this->GetActorLocation(), this->GetActorRotation());
-		}
-
-		// set exploded material
-		if (ExplodedMaterial)
-		{
-			BaseMesh->SetMaterial(0, ExplodedMaterial);
-		}
-
-		// Look at each component and apply a radial impulse, originating from our actor's location
-		// We can do different if we'd like
-		// Also set the force and strength to be params
-		FVector Position = GetActorLocation();
-
-		for (FOverlapResult OverlappedActor : OverlappingActors)
-		{
-			float BaseForceRadius = this->DamageSphere->GetUnscaledSphereRadius();
-
-			if (DebugExplosiveDrawing > 0)
-			{
-				UE_LOG(LogTemp, Log, TEXT("We have an overlap %s"), *OverlappedActor.GetActor()->GetName());
-			}
-
-			// Simulate Physics needs to be on for this next bit to work
-			// so let's do that
-			OverlappedActor.GetComponent()->AddRadialImpulse(Position, BaseForceRadius, BaseForceStrength, ERadialImpulseFalloff::RIF_Linear, true);
-
-			TArray<AActor*> IgnoreActor;
-			UGameplayStatics::ApplyRadialDamageWithFalloff(GetWorld(), BaseDamage, MinAppliedDamage,
-				Position, 0.0f, BaseForceRadius, DamageFalloff, AppliedDamageType, IgnoreActor);
-		}
+		ApplyExplosionDamage();
+		PlayExplosionEffects();
 	}
 }
 
@@ -129,3 +104,58 @@ void AHDExplosiveActor::Tick(float DeltaTime)
 
 }
 
+// This happens on the client
+void AHDExplosiveActor::OnRep_bExploded()
+{
+		PlayExplosionEffects();
+}
+
+void AHDExplosiveActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AHDExplosiveActor, bExploded);
+}
+
+void AHDExplosiveActor::PlayExplosionEffects()
+{
+
+	// play particle effect
+	if (ExplosionEffect)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEffect, this->GetActorLocation(), this->GetActorRotation());
+	}
+
+	// set exploded material
+	if (ExplodedMaterial)
+	{
+		BaseMesh->SetMaterial(0, ExplodedMaterial);
+	}
+}
+
+void AHDExplosiveActor::ApplyExplosionDamage()
+{
+	// Look at each component and apply a radial impulse, originating from our actor's location
+// We can do different if we'd like
+// Also set the force and strength to be params
+	FVector Position = GetActorLocation();
+
+	for (FOverlapResult OverlappedActor : OverlappingActors)
+	{
+		float BaseForceRadius = this->DamageSphere->GetUnscaledSphereRadius();
+
+		if (DebugExplosiveDrawing > 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("We have an overlap %s"), *OverlappedActor.GetActor()->GetName());
+		}
+
+		// Simulate Physics needs to be on for this next bit to work
+		// so let's do that
+		OverlappedActor.GetComponent()->AddRadialImpulse(Position, BaseForceRadius, BaseForceStrength, ERadialImpulseFalloff::RIF_Linear, true);
+
+		TArray<AActor*> IgnoreActor;
+		UGameplayStatics::ApplyRadialDamageWithFalloff(GetWorld(), BaseDamage, MinAppliedDamage,
+			Position, 0.0f, BaseForceRadius, DamageFalloff, AppliedDamageType, IgnoreActor);
+
+	}
+}

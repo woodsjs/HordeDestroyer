@@ -97,6 +97,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	UCurveFloat* VerticalRecoilCurve;
 
+	UFUNCTION()
+	void AddRecoil(AActor* MyOwner);
+
 	// server replicated data
 	// Fire our weapon
 	UFUNCTION(Server, Reliable, WithValidation)

@@ -137,19 +137,7 @@ void AHDWeapon::Fire()
 
 		LastFiredTime = GetWorld()->TimeSeconds;
 
-		// we need to allow our designer to choose the curve!
-		// Do we need this in tick?
-		float HorizontalRecoil = 0.1f;
-
-		if (HorizontalRecoilCurve)
-		{
-			// need to figure out how to get the time herew
-			HorizontalRecoil = HorizontalRecoilCurve->GetFloatValue(0.0f);
-		}
-		APawn* OwnerPawn = Cast<APawn>(MyOwner);
-		OwnerPawn->AddControllerPitchInput(-0.5f);
-		OwnerPawn->AddControllerYawInput(HorizontalRecoilCurve->GetFloatValue(0.0f));
-		
+		AddRecoil(MyOwner);
 	}
 }
 
@@ -197,7 +185,6 @@ void AHDWeapon::PlayFireEffects(FVector TracerEndPoint)
 			PC->ClientStartCameraShake(FireCameraShake );
 		}
 	}
-
 
 
 }
@@ -257,5 +244,21 @@ void AHDWeapon::PlayImpactEffects(EPhysicalSurface SurfaceType, FVector ImpactPo
 
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, ImpactPoint, ShotDirection.Rotation());
 	}
+}
+
+void AHDWeapon::AddRecoil(AActor* MyOwner)
+{
+	// we need to allow our designer to choose the curve!
+	// Do we need this in tick?
+	float HorizontalRecoil = 0.1f;
+
+	if (HorizontalRecoilCurve)
+	{
+		// need to figure out how to get the time herew
+		HorizontalRecoil = HorizontalRecoilCurve->GetFloatValue(0.0f);
+	}
+	APawn* OwnerPawn = Cast<APawn>(MyOwner);
+	OwnerPawn->AddControllerPitchInput(-0.5f);
+	OwnerPawn->AddControllerYawInput(HorizontalRecoilCurve->GetFloatValue(0.0f));
 }
 

@@ -14,6 +14,13 @@ AHDRocketLauncher::AHDRocketLauncher()
 
 void AHDRocketLauncher::Fire()
 {
+	// if this is not the server
+// call the server RPC
+	if (GetLocalRole() < ROLE_Authority)
+	{
+		ServerFire();
+	}
+
 	// Trace the world from pawn eyes to crosshair location
 	AActor* MyOwner = GetOwner();
 
@@ -43,19 +50,24 @@ void AHDRocketLauncher::Fire()
 		FVector TracerEndPoint = TraceEnd;
 
 	// try and fire a projectile
-		if (ProjectileClass)
+
+		if (GetLocalRole() == ROLE_Authority)
 		{
-
-			//Set Spawn Collision Handling Override
-			FActorSpawnParameters ActorSpawnParams;
-			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-			ActorSpawnParams.Instigator = Cast<APawn>(MyOwner);
-
-			// spawn the projectile at the muzzle
-			AHDProjectileGrenade* grenade = GetWorld()->SpawnActor<AHDProjectileGrenade>(ProjectileClass, EyeLocation, EyeRotation, ActorSpawnParams);
-			grenade->Launched();
+			if (ProjectileClass)
+			{
+	
+				//Set Spawn Collision Handling Override
+				FActorSpawnParameters ActorSpawnParams;
+				ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+				ActorSpawnParams.Instigator = Cast<APawn>(MyOwner);
+	
+				// spawn the projectile at the muzzle
+				AHDProjectileGrenade* grenade = GetWorld()->SpawnActor<AHDProjectileGrenade>(ProjectileClass, EyeLocation, EyeRotation, ActorSpawnParams);
+				grenade->Launched();
+			}
 		}
 
 		PlayFireEffects(TracerEndPoint);
+		AddRecoil(MyOwner);
 	}
 }

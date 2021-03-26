@@ -54,9 +54,19 @@ protected:
 	UPROPERTY(EditInstanceOnly, category = "Projectile")
 	float DetonateTime = 1.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
 	TSubclassOf<UDamageType> DamageType;
 
+	// pawn died previously
+	UPROPERTY(ReplicatedUsing = OnRep_bExploded, BlueprintReadOnly, Category = "Projectile")
+	bool bExploded;
+
+	UFUNCTION()
+	void OnRep_bExploded();
+
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	void PlayExplosionEffects();
 
 public:	
 	// Called every frame

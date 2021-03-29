@@ -8,6 +8,7 @@
 #include "GameFramework/DamageType.h"
 
 #include "DrawDebugHelpers.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 AHDProjectileGrenade::AHDProjectileGrenade()
@@ -25,6 +26,8 @@ AHDProjectileGrenade::AHDProjectileGrenade()
 	ProjectileMovement->MaxSpeed = 3000.f;
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	ProjectileMovement->bShouldBounce = true;
+
+	SetReplicates(true);
 }
 
 // We need to tick for a set time before we detonate after launching. 
@@ -43,20 +46,58 @@ void AHDProjectileGrenade::Tick(float DeltaTime)
 
 }
 
-//void AHDProjectileGrenade::OnDetonate(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 void AHDProjectileGrenade::OnDetonate()
 {
-	TArray<AActor*> ignoreList;
-	bool bDidDamage = UGameplayStatics::ApplyRadialDamage(GetWorld(), 50.0f, this->GetActorLocation(), 20.0f, DamageType, ignoreList);
-	UE_LOG(LogTemp, Log, TEXT("did damage %d"), bDidDamage);
+	UE_LOG(LogTemp, Log, TEXT("OnDetonate fired. bExploded is %d"), bExploded);
+
+	bExploded = true;
+
+	//TArray<AActor*> ignoreList;
+	//bool bDidDamage = UGameplayStatics::ApplyRadialDamage(GetWorld(), 50.0f, this->GetActorLocation(), 20.0f, DamageType, ignoreList);
+
+	TArray<AActor*> IgnoreActor;
+	float BaseDamage = 50.0f;
+	float MinAppliedDamage = 0.0f;
+	FVector Position = this->GetActorLocation();
+	float BaseForceRadius = 0.0f;
+	float DamageFalloff = 0.5f;
+	TSubclassOf<UDamageType> AppliedDamageType = DamageType;
+
+	UGameplayStatics::ApplyRadialDamageWithFalloff(GetWorld(), BaseDamage, MinAppliedDamage,
+		Position, 0.0f, BaseForceRadius, DamageFalloff, AppliedDamageType, IgnoreActor);
+
+	//Destroy();
+}
+
+void AHDProjectileGrenade::OnRep_bExploded()
+{
+	UE_LOG(LogTemp, Log, TEXT("We should explode here"));
+	PlayExplosionEffects();
+
+	Destroy();
+
+}
+
+void AHDProjectileGrenade::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	UE_LOG(LogTemp, Log, TEXT("Got rep lifetime props"));
+
+	DOREPLIFETIME(AHDProjectileGrenade, bExploded);
+}
+
+void AHDProjectileGrenade::PlayExplosionEffects()
+{
+	UE_LOG(LogTemp, Log, TEXT("Play Explosion Effects"));
+
 
 	if (DetonateEffect)
 	{
+		UE_LOG(LogTemp, Log, TEXT("We should have detonate effect here"));
+
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DetonateEffect, this->GetActorLocation(), this->GetActorRotation());
 	}
 
 	MakeNoise(1.0f, GetInstigator());
-	Destroy();
-	//}
-}
 
+}

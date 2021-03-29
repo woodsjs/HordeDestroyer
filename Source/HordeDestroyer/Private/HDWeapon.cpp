@@ -9,6 +9,7 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Chaos/ChaosEngineInterface.h"
 #include "HordeDestroyer/HordeDestroyer.h"
+#include "Net/UnrealNetwork.h"
 
 // test for recoil
 //#include "Curves/CurveFloat.h"
@@ -35,6 +36,12 @@ AHDWeapon::AHDWeapon()
 	BaseDamage = 20.0f;
 
 	RateOfFire = 600;
+
+	SetReplicates(true);
+
+	// reduce latency. 33FPS vs 66FPS
+	NetUpdateFrequency = 66.0f;
+	MinNetUpdateFrequency = 33.0f;
 }
 
 void AHDWeapon::BeginPlay()
@@ -47,9 +54,14 @@ void AHDWeapon::BeginPlay()
 
 void AHDWeapon::Fire()
 {
-	// Trace the world from pawn eyes to crosshair location
+	// if this is not the server
+	// call the server RPC
+	if (GetLocalRole() < ROLE_Authority)
+	{
+		ServerFire();
+	}
 
-	UE_LOG(LogTemp, Log, TEXT("Boom!"));
+	// Trace the world from pawn eyes to crosshair location
 
 	AActor* MyOwner = GetOwner();
 
@@ -79,6 +91,10 @@ void AHDWeapon::Fire()
 		// otherwise we go to the Hit.ImpactPoint
 		FVector TracerEndPoint = TraceEnd;
 
+		// use the default unless we override on a hit result
+		// this avoids caching the surfce emitter
+		EPhysicalSurface SurfaceType = SurfaceType_Default;
+
 		FHitResult Hit;
 		if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, TraceEnd, COLLISION_WEAPON, QueryParams))
 		{
@@ -86,7 +102,7 @@ void AHDWeapon::Fire()
 			AActor* HitActor = Hit.GetActor();
 
 
-			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
+			SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
 
 			float ActualDamage = BaseDamage;
 			if (SurfaceType == SURFACE_FLESHVULNERABLE)
@@ -96,25 +112,10 @@ void AHDWeapon::Fire()
 
 			UGameplayStatics::ApplyPointDamage(HitActor, ActualDamage, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType);
 
-			UParticleSystem* SelectedEffect = nullptr;
-			switch (SurfaceType)
-			{
-			case SURFACE_FLESHDEFAULT:
-			case SURFACE_FLESHVULNERABLE:
-				SelectedEffect = FleshImpactEffect;
-				break;
-			default:
-				SelectedEffect = DefaultImpactEffect;
-				break;
-			}
-
-
-			if (SelectedEffect)
-			{
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
-			}
+			PlayImpactEffects(SurfaceType, Hit.ImpactPoint);
 
 			TracerEndPoint = Hit.ImpactPoint;
+
 		}
 
 
@@ -125,21 +126,18 @@ void AHDWeapon::Fire()
 
 		PlayFireEffects(TracerEndPoint);
 
+		// Replicate endpoint only, clients can derive the start point on their own
+		// server only
+		if (GetLocalRole() == ROLE_Authority)
+		{
+			HitScanTrace.TraceTo = TracerEndPoint;
+			HitScanTrace.SurfaceType = SurfaceType;
+
+		}
+
 		LastFiredTime = GetWorld()->TimeSeconds;
 
-		// we need to allow our designer to choose the curve!
-		// Do we need this in tick?
-		float HorizontalRecoil = 0.1f;
-
-		if (HorizontalRecoilCurve)
-		{
-			// need to figure out how to get the time herew
-			HorizontalRecoil = HorizontalRecoilCurve->GetFloatValue(0.0f);
-		}
-		APawn* OwnerPawn = Cast<APawn>(MyOwner);
-		OwnerPawn->AddControllerPitchInput(-0.5f);
-		OwnerPawn->AddControllerYawInput(HorizontalRecoilCurve->GetFloatValue(0.0f));
-		
+		AddRecoil(MyOwner);
 	}
 }
 
@@ -189,11 +187,78 @@ void AHDWeapon::PlayFireEffects(FVector TracerEndPoint)
 	}
 
 
+}
 
+void AHDWeapon::ServerFire_Implementation()
+{
+	// this is only called on the server
+	Fire();
+}
+
+// anticheat
+bool AHDWeapon::ServerFire_Validate()
+{
+	return true;
+}
+
+void AHDWeapon::OnRep_HitScanTrace()
+{
+	// Play effects
+	PlayFireEffects(HitScanTrace.TraceTo);
+
+	PlayImpactEffects(HitScanTrace.SurfaceType, HitScanTrace.TraceTo);
 }
 
 
+void AHDWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	// since we're already playing the effects on the owning client,
+	// we don't need to replicate this back to the same owning client
+	// so COND_SkipOwner...
+	DOREPLIFETIME_CONDITION(AHDWeapon, HitScanTrace, COND_SkipOwner);
+}
+
+void AHDWeapon::PlayImpactEffects(EPhysicalSurface SurfaceType, FVector ImpactPoint)
+{
+	UParticleSystem* SelectedEffect = nullptr;
+
+	switch (SurfaceType)
+	{
+	case SURFACE_FLESHDEFAULT:
+	case SURFACE_FLESHVULNERABLE:
+		SelectedEffect = FleshImpactEffect;
+		break;
+	default:
+		SelectedEffect = DefaultImpactEffect;
+		break;
+	}
 
 
+	if (SelectedEffect)
+	{
+		FVector MuzzleLocation = MeshComp->GetSocketLocation(MuzzleSocketName);
+		FVector ShotDirection = ImpactPoint - MuzzleLocation;
+		ShotDirection.Normalize();
 
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, ImpactPoint, ShotDirection.Rotation());
+	}
+}
+
+void AHDWeapon::AddRecoil(AActor* MyOwner)
+{
+	// we need to allow our designer to choose the curve!
+	// Do we need this in tick?
+	float HorizontalRecoil = 0.1f;
+
+	if (HorizontalRecoilCurve)
+	{
+		// need to figure out how to get the time herew
+		HorizontalRecoil = HorizontalRecoilCurve->GetFloatValue(0.0f);
+	}
+	APawn* OwnerPawn = Cast<APawn>(MyOwner);
+	OwnerPawn->AddControllerPitchInput(-0.5f);
+	OwnerPawn->AddControllerYawInput(HorizontalRecoilCurve->GetFloatValue(0.0f));
+}
 

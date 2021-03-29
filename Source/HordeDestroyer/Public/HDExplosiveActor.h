@@ -43,9 +43,14 @@ protected:
 	UFUNCTION()
 	void OnHealthChanged(UHDHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 
+	UFUNCTION()
+	void OnRep_bExploded();
+
 	// pawn died previously
-	UPROPERTY(BlueprintReadOnly, Category = "Explosive")
+	UPROPERTY(ReplicatedUsing= OnRep_bExploded, BlueprintReadOnly, Category = "Explosive")
 	bool bExploded;
+
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	// our force
 	UPROPERTY(EditDefaultsOnly, Category = "Explosive")
@@ -73,6 +78,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Explosive")
 	float DamageFalloff;
 
+	void PlayExplosionEffects();
+
+	void ApplyExplosionDamage();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

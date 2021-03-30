@@ -8,6 +8,14 @@
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
 #include "GameFramework/Character.h"
+#include "DrawDebugHelpers.h"
+
+static int32 DebugTrackerBotDrawing = 0;
+FAutoConsoleVariableRef CVARDebugTrackerBotDrawing(
+	TEXT("HD.DebugTrackerBot"),
+	DebugTrackerBotDrawing,
+	TEXT("Draw Debug Lines for TrackerBots"),
+	ECVF_Cheat);
 
 // Sets default values
 AHDTrackerBot::AHDTrackerBot()
@@ -17,14 +25,21 @@ AHDTrackerBot::AHDTrackerBot()
 
 	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
 	MeshComp->SetCanEverAffectNavigation(false);
+	MeshComp->SetSimulatePhysics(true);
 
 	RootComponent = MeshComp;
+
+	bUseVelocityChange = false;
+	MovementForce = 1000;
+	RequiredDistanceToTarget = 100;
 }
 
 // Called when the game starts or when spawned
 void AHDTrackerBot::BeginPlay()
 {
 	Super::BeginPlay();
+
+	NextPathPoint = GetNextPathPoint();
 	
 }
 
@@ -49,6 +64,40 @@ void AHDTrackerBot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	float DistanceToTarget = (GetActorLocation() - NextPathPoint).Size();
+
+	if ( DistanceToTarget <= RequiredDistanceToTarget )
+	{
+		NextPathPoint = GetNextPathPoint();
+
+		if ( DebugTrackerBotDrawing > 0 )
+		{
+			DrawDebugString(GetWorld(), GetActorLocation(), "Target Reached", NULL, FColor::Yellow,0.0f,false, 1.0f);
+		}
+
+	}
+	else
+	{
+		// keep moving towards next target
+		FVector ForceDirection = NextPathPoint - GetActorLocation();
+		ForceDirection.Normalize();
+
+		ForceDirection *= MovementForce;
+
+		MeshComp->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
+
+		//NextPathPoint = GetNextPathPoint();
+
+		if ( DebugTrackerBotDrawing > 0 )
+		{
+			DrawDebugDirectionalArrow(GetWorld(), GetActorLocation(), GetActorLocation() + ForceDirection, 32, FColor::Red, false, 0.0f);
+		}
+	}
+
+	if (DebugTrackerBotDrawing > 0)
+	{
+		DrawDebugSphere(GetWorld(), NextPathPoint, 20.0f, 16, FColor::Yellow, false, 0.0f);
+	}
 }
 
 

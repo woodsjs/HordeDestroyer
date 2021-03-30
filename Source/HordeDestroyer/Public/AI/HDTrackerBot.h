@@ -6,6 +6,8 @@
 #include "GameFramework/Pawn.h"
 #include "HDTrackerBot.generated.h"
 
+class UHDHealthComponent;
+
 UCLASS()
 class HORDEDESTROYER_API AHDTrackerBot : public APawn
 {
@@ -34,6 +36,17 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	float RequiredDistanceToTarget;
+
+	// Take damage
+	UPROPERTY(VisibleDefaultsOnly, Category = "Components")
+	UHDHealthComponent* HealthComp;
+
+	UFUNCTION()
+	void OnTakeDamage(UHDHealthComponent* MyHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
+
+	// pawn died previously
+	UPROPERTY(BlueprintReadOnly, Category = "Player")
+	bool bExploded;
 
 public:	
 	// Called every frame

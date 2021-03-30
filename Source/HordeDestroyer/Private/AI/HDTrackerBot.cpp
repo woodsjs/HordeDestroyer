@@ -8,7 +8,12 @@
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
 #include "GameFramework/Character.h"
+
+// Debug
 #include "DrawDebugHelpers.h"
+
+// our HealthComp
+#include "Components/HDHealthComponent.h"
 
 static int32 DebugTrackerBotDrawing = 0;
 FAutoConsoleVariableRef CVARDebugTrackerBotDrawing(
@@ -29,6 +34,9 @@ AHDTrackerBot::AHDTrackerBot()
 
 	RootComponent = MeshComp;
 
+	HealthComp = CreateDefaultSubobject<UHDHealthComponent>(TEXT("HealthComp"));
+	HealthComp->SetIsReplicated(true);
+
 	bUseVelocityChange = false;
 	MovementForce = 1000;
 	RequiredDistanceToTarget = 100;
@@ -38,6 +46,7 @@ AHDTrackerBot::AHDTrackerBot()
 void AHDTrackerBot::BeginPlay()
 {
 	Super::BeginPlay();
+	HealthComp->OnHealthChanged.AddDynamic(this, &AHDTrackerBot::OnTakeDamage);
 
 	NextPathPoint = GetNextPathPoint();
 	
@@ -100,4 +109,21 @@ void AHDTrackerBot::Tick(float DeltaTime)
 	}
 }
 
+void AHDTrackerBot::OnTakeDamage(UHDHealthComponent* MyHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType,
+	class AController* InstigatedBy, AActor* DamageCauser)
+{
+	UE_LOG(LogTemp, Log, TEXT("Took damage: %f name: %s"), Health, *GetName());
 
+	if (Health <= 0.0f && !bExploded)
+	{
+		//Die!
+
+		bExploded = true;
+
+		// @TODO: Pulse on hit
+		UE_LOG(LogTemp, Log, TEXT("Died"), Health);
+
+		//SetLifeSpan(10);
+
+	}
+}

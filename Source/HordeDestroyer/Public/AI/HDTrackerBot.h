@@ -9,6 +9,7 @@
 class UHDHealthComponent;
 class UMaterialInstanceDynamic;
 class UParticleSystem;
+class USphereComponent;
 
 UCLASS()
 class HORDEDESTROYER_API AHDTrackerBot : public APawn
@@ -65,9 +66,22 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	float ExplosionDamage;
+
+	// overlap reaction to target distance
+	UPROPERTY(VisibleDefaultsOnly, Category = "Components")
+	USphereComponent* TargetOverlapComp;
+
+	FTimerHandle TimerHandle_SelfDamage;
+
+	bool bStartedSelfDestruction;
+
+	void DamageSelf();
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	// overlap override
+	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
 
 };

@@ -14,6 +14,8 @@
 
 // our HealthComp
 #include "Components/HDHealthComponent.h"
+#include "Components/SphereComponent.h"
+#include "HDCharacter.h"
 
 static int32 DebugTrackerBotDrawing = 0;
 FAutoConsoleVariableRef CVARDebugTrackerBotDrawing(
@@ -37,6 +39,14 @@ AHDTrackerBot::AHDTrackerBot()
 	HealthComp = CreateDefaultSubobject<UHDHealthComponent>(TEXT("HealthComp"));
 	HealthComp->SetIsReplicated(true);
 
+	TargetOverlapComp = CreateDefaultSubobject<USphereComponent>(TEXT("TargetOverlapComp"));
+	TargetOverlapComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	TargetOverlapComp->SetSphereRadius(200);
+	TargetOverlapComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+	TargetOverlapComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+
+	TargetOverlapComp->SetupAttachment(RootComponent);
+
 	bUseVelocityChange = false;
 	MovementForce = 1000;
 	RequiredDistanceToTarget = 100;
@@ -49,6 +59,7 @@ void AHDTrackerBot::BeginPlay()
 {
 	Super::BeginPlay();
 	HealthComp->OnHealthChanged.AddDynamic(this, &AHDTrackerBot::OnTakeDamage);
+	//OnActorBeginOverlap.AddDynamic(this);
 
 	NextPathPoint = GetNextPathPoint();
 	
@@ -135,13 +146,7 @@ void AHDTrackerBot::OnTakeDamage(UHDHealthComponent* MyHealthComp, float Health,
 
 	if (Health <= 0.0f && !bExploded)
 	{
-		//Die!
-
 		SelfDestruct();
-
-
-		//SetLifeSpan(10);
-
 	}
 }
 
@@ -167,4 +172,27 @@ void AHDTrackerBot::SelfDestruct()
 		Destroy();
 	}
 
+}
+
+void AHDTrackerBot::DamageSelf()
+{
+	UGameplayStatics::ApplyDamage(this, 20, GetInstigatorController(), this, nullptr);
+}
+
+void AHDTrackerBot::NotifyActorBeginOverlap(AActor* OtherActor)
+{
+	if (!bStartedSelfDestruction)
+	{
+		bStartedSelfDestruction = true;
+
+		AHDCharacter* PlayerPawn = Cast<AHDCharacter>(OtherActor);
+
+		// overlapped a player
+		if (PlayerPawn)
+		{
+
+			// odd enough, we'll inflict damage on ourselves until we explode
+			GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &AHDTrackerBot::DamageSelf, 0.5f, true, 0.0f);
+		}
+	}
 }

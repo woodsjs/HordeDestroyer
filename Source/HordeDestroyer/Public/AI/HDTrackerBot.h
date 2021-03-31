@@ -7,6 +7,7 @@
 #include "HDTrackerBot.generated.h"
 
 class UHDHealthComponent;
+class UMaterialInstanceDynamic;
 
 UCLASS()
 class HORDEDESTROYER_API AHDTrackerBot : public APawn
@@ -47,6 +48,9 @@ protected:
 	// pawn died previously
 	UPROPERTY(BlueprintReadOnly, Category = "Player")
 	bool bExploded;
+
+	// Dynamic material - pulsing on damage taken
+	UMaterialInstanceDynamic* MatInst;
 
 public:	
 	// Called every frame

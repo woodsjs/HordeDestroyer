@@ -57,12 +57,15 @@ FVector AHDTrackerBot::GetNextPathPoint()
 	// hack to get player location
 	ACharacter* PlayerPawn = UGameplayStatics::GetPlayerCharacter(this, 0);
 
-	UNavigationPath* NavPath = UNavigationSystemV1::FindPathToActorSynchronously(this, GetActorLocation(), PlayerPawn);
-
-	if (NavPath->PathPoints.Num() > 1)
+	if (PlayerPawn)
 	{
-		// get next point in path. First point is current location
-		return NavPath->PathPoints[1];
+		UNavigationPath* NavPath = UNavigationSystemV1::FindPathToActorSynchronously(this, GetActorLocation(), PlayerPawn);
+
+		if (NavPath->PathPoints.Num() > 1)
+		{
+			// get next point in path. First point is current location
+			return NavPath->PathPoints[1];
+		}
 	}
 
 	return GetActorLocation();
@@ -112,7 +115,21 @@ void AHDTrackerBot::Tick(float DeltaTime)
 void AHDTrackerBot::OnTakeDamage(UHDHealthComponent* MyHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType,
 	class AController* InstigatedBy, AActor* DamageCauser)
 {
-	UE_LOG(LogTemp, Log, TEXT("Took damage: %f name: %s"), Health, *GetName());
+
+	if (DebugTrackerBotDrawing > 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Took damage: %f name: %s"), Health, *GetName());
+	}
+
+	if (MatInst == nullptr)
+	{
+		MatInst = MeshComp->CreateAndSetMaterialInstanceDynamicFromMaterial(0, MeshComp->GetMaterial(0));
+	}
+
+	if (MatInst)
+	{
+		MatInst->SetScalarParameterValue("LastTimeDamageTaken", GetWorld()->TimeSeconds);
+	}
 
 	if (Health <= 0.0f && !bExploded)
 	{

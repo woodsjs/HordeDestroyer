@@ -8,6 +8,7 @@
 
 class UHDHealthComponent;
 class UMaterialInstanceDynamic;
+class UParticleSystem;
 
 UCLASS()
 class HORDEDESTROYER_API AHDTrackerBot : public APawn
@@ -46,12 +47,24 @@ protected:
 	void OnTakeDamage(UHDHealthComponent* MyHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 
 	// pawn died previously
-	UPROPERTY(BlueprintReadOnly, Category = "Player")
+	UPROPERTY(BlueprintReadOnly, Category = "Trackerbot")
 	bool bExploded;
 
 	// Dynamic material - pulsing on damage taken
 	UMaterialInstanceDynamic* MatInst;
 
+	// Explosion effect
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	UParticleSystem* ExplosionEffect;
+
+	// Self Destruct mechanism
+	void SelfDestruct();
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	float ExplosionRadius;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	float ExplosionDamage;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

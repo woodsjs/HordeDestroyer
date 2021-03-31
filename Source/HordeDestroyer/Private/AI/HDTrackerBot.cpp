@@ -40,6 +40,8 @@ AHDTrackerBot::AHDTrackerBot()
 	bUseVelocityChange = false;
 	MovementForce = 1000;
 	RequiredDistanceToTarget = 100;
+	ExplosionDamage = 40;
+	ExplosionRadius = 200;
 }
 
 // Called when the game starts or when spawned
@@ -135,12 +137,34 @@ void AHDTrackerBot::OnTakeDamage(UHDHealthComponent* MyHealthComp, float Health,
 	{
 		//Die!
 
-		bExploded = true;
+		SelfDestruct();
 
-		// @TODO: Pulse on hit
-		UE_LOG(LogTemp, Log, TEXT("Died"), Health);
 
 		//SetLifeSpan(10);
 
 	}
+}
+
+void AHDTrackerBot::SelfDestruct()
+{
+
+	if (DebugTrackerBotDrawing > 0)
+	{
+		DrawDebugSphere(GetWorld(), NextPathPoint, ExplosionRadius, 16, FColor::Red, false, 2.0f);
+	}
+
+	if (!bExploded)
+	{
+		bExploded = true;
+
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEffect, this->GetActorLocation());
+
+		TArray<AActor*> IgnoreActor;
+		IgnoreActor.Add(this);
+
+		UGameplayStatics::ApplyRadialDamage(this, ExplosionDamage, GetActorLocation(), ExplosionRadius, nullptr, IgnoreActor, this, GetInstigatorController(), true);
+
+		Destroy();
+	}
+
 }

@@ -17,6 +17,9 @@
 #include "Components/SphereComponent.h"
 #include "HDCharacter.h"
 
+// our sound
+#include "Sound/SoundCue.h"
+
 static int32 DebugTrackerBotDrawing = 0;
 FAutoConsoleVariableRef CVARDebugTrackerBotDrawing(
 	TEXT("HD.DebugTrackerBot"),
@@ -52,6 +55,7 @@ AHDTrackerBot::AHDTrackerBot()
 	RequiredDistanceToTarget = 100;
 	ExplosionDamage = 40;
 	ExplosionRadius = 200;
+	SelfDamageInterval = 0.25f;
 }
 
 // Called when the game starts or when spawned
@@ -123,6 +127,13 @@ void AHDTrackerBot::Tick(float DeltaTime)
 	{
 		DrawDebugSphere(GetWorld(), NextPathPoint, 20.0f, 16, FColor::Yellow, false, 0.0f);
 	}
+
+	// attenuate the sound of teh audio as the ball rolls
+	//const float CurrentVelocity = GetVelocity().Size();
+	// This is map range clamped from blueprint
+	//float ClampedVelocity = FMath::GetMappedRangeValueClamped(FVector2D(10, 1000), FVector2D(0.1, 2), CurrentVelocity);
+	//get audio comp
+	// set volume multiplier, target audio comp, new multiplier the output of map range clamped
 }
 
 void AHDTrackerBot::OnTakeDamage(UHDHealthComponent* MyHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType,
@@ -169,6 +180,8 @@ void AHDTrackerBot::SelfDestruct()
 
 		UGameplayStatics::ApplyRadialDamage(this, ExplosionDamage, GetActorLocation(), ExplosionRadius, nullptr, IgnoreActor, this, GetInstigatorController(), true);
 
+		// we don't need to attach, since we're exploding anyway
+		UGameplayStatics::PlaySoundAtLocation(this, ExplodeSound, GetActorLocation());
 		Destroy();
 	}
 
@@ -192,7 +205,9 @@ void AHDTrackerBot::NotifyActorBeginOverlap(AActor* OtherActor)
 		{
 
 			// odd enough, we'll inflict damage on ourselves until we explode
-			GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &AHDTrackerBot::DamageSelf, 0.5f, true, 0.0f);
+			GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &AHDTrackerBot::DamageSelf, SelfDamageInterval, true, 0.0f);
+
+			UGameplayStatics::SpawnSoundAttached(SelfDestructSound, RootComponent);
 		}
 	}
 }

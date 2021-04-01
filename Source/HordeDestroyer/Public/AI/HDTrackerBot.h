@@ -10,6 +10,7 @@ class UHDHealthComponent;
 class UMaterialInstanceDynamic;
 class UParticleSystem;
 class USphereComponent;
+class USoundCue;
 
 UCLASS()
 class HORDEDESTROYER_API AHDTrackerBot : public APawn
@@ -62,6 +63,9 @@ protected:
 	void SelfDestruct();
 
 	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	float SelfDamageInterval;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	float ExplosionRadius;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
@@ -76,6 +80,12 @@ protected:
 	bool bStartedSelfDestruction;
 
 	void DamageSelf();
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	USoundCue* SelfDestructSound;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	USoundCue* ExplodeSound;
 
 public:	
 	// Called every frame

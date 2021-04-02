@@ -30,7 +30,7 @@ FAutoConsoleVariableRef CVARDebugTrackerBotDrawing(
 // Sets default values
 AHDTrackerBot::AHDTrackerBot()
 {
- 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
@@ -65,8 +65,11 @@ void AHDTrackerBot::BeginPlay()
 	HealthComp->OnHealthChanged.AddDynamic(this, &AHDTrackerBot::OnTakeDamage);
 	//OnActorBeginOverlap.AddDynamic(this);
 
-	NextPathPoint = GetNextPathPoint();
-	
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		NextPathPoint = GetNextPathPoint();
+	}
+
 }
 
 FVector AHDTrackerBot::GetNextPathPoint()
@@ -93,39 +96,42 @@ void AHDTrackerBot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	float DistanceToTarget = (GetActorLocation() - NextPathPoint).Size();
-
-	if ( DistanceToTarget <= RequiredDistanceToTarget )
+	if (GetLocalRole() == ROLE_Authority && !bExploded)
 	{
-		NextPathPoint = GetNextPathPoint();
+		float DistanceToTarget = (GetActorLocation() - NextPathPoint).Size();
 
-		if ( DebugTrackerBotDrawing > 0 )
+		if (DistanceToTarget <= RequiredDistanceToTarget)
 		{
-			DrawDebugString(GetWorld(), GetActorLocation(), "Target Reached", NULL, FColor::Yellow,0.0f,false, 1.0f);
+			NextPathPoint = GetNextPathPoint();
+
+			if (DebugTrackerBotDrawing > 0)
+			{
+				DrawDebugString(GetWorld(), GetActorLocation(), "Target Reached", NULL, FColor::Yellow, 0.0f, false, 1.0f);
+			}
+
+		}
+		else
+		{
+			// keep moving towards next target
+			FVector ForceDirection = NextPathPoint - GetActorLocation();
+			ForceDirection.Normalize();
+
+			ForceDirection *= MovementForce;
+
+			MeshComp->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
+
+			//NextPathPoint = GetNextPathPoint();
+
+			if (DebugTrackerBotDrawing > 0)
+			{
+				DrawDebugDirectionalArrow(GetWorld(), GetActorLocation(), GetActorLocation() + ForceDirection, 32, FColor::Red, false, 0.0f);
+			}
 		}
 
-	}
-	else
-	{
-		// keep moving towards next target
-		FVector ForceDirection = NextPathPoint - GetActorLocation();
-		ForceDirection.Normalize();
-
-		ForceDirection *= MovementForce;
-
-		MeshComp->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
-
-		//NextPathPoint = GetNextPathPoint();
-
-		if ( DebugTrackerBotDrawing > 0 )
+		if (DebugTrackerBotDrawing > 0)
 		{
-			DrawDebugDirectionalArrow(GetWorld(), GetActorLocation(), GetActorLocation() + ForceDirection, 32, FColor::Red, false, 0.0f);
+			DrawDebugSphere(GetWorld(), NextPathPoint, 20.0f, 16, FColor::Yellow, false, 0.0f);
 		}
-	}
-
-	if (DebugTrackerBotDrawing > 0)
-	{
-		DrawDebugSphere(GetWorld(), NextPathPoint, 20.0f, 16, FColor::Yellow, false, 0.0f);
 	}
 
 	// attenuate the sound of teh audio as the ball rolls
@@ -164,25 +170,32 @@ void AHDTrackerBot::OnTakeDamage(UHDHealthComponent* MyHealthComp, float Health,
 void AHDTrackerBot::SelfDestruct()
 {
 
-	if (DebugTrackerBotDrawing > 0)
+	if (bExploded)
 	{
-		DrawDebugSphere(GetWorld(), NextPathPoint, ExplosionRadius, 16, FColor::Red, false, 2.0f);
+		return;
 	}
 
-	if (!bExploded)
+	bExploded = true;
+
+	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEffect, this->GetActorLocation());
+
+	// we don't need to attach, since we're exploding anyway
+	UGameplayStatics::PlaySoundAtLocation(this, ExplodeSound, GetActorLocation());
+
+	if ( GetLocalRole() == ROLE_Authority )
 	{
-		bExploded = true;
-
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEffect, this->GetActorLocation());
-
 		TArray<AActor*> IgnoreActor;
 		IgnoreActor.Add(this);
 
 		UGameplayStatics::ApplyRadialDamage(this, ExplosionDamage, GetActorLocation(), ExplosionRadius, nullptr, IgnoreActor, this, GetInstigatorController(), true);
 
-		// we don't need to attach, since we're exploding anyway
-		UGameplayStatics::PlaySoundAtLocation(this, ExplodeSound, GetActorLocation());
-		Destroy();
+		if (DebugTrackerBotDrawing > 0)
+		{
+			DrawDebugSphere(GetWorld(), NextPathPoint, ExplosionRadius, 16, FColor::Red, false, 2.0f);
+		}
+
+		SetLifeSpan(1);
+		//Destroy();
 	}
 
 }
@@ -194,7 +207,7 @@ void AHDTrackerBot::DamageSelf()
 
 void AHDTrackerBot::NotifyActorBeginOverlap(AActor* OtherActor)
 {
-	if (!bStartedSelfDestruction)
+	if (!bStartedSelfDestruction && !bExploded)
 	{
 		bStartedSelfDestruction = true;
 
@@ -204,8 +217,11 @@ void AHDTrackerBot::NotifyActorBeginOverlap(AActor* OtherActor)
 		if (PlayerPawn)
 		{
 
-			// odd enough, we'll inflict damage on ourselves until we explode
-			GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &AHDTrackerBot::DamageSelf, SelfDamageInterval, true, 0.0f);
+			if (GetLocalRole() == ROLE_Authority)
+			{
+				// odd enough, we'll inflict damage on ourselves until we explode
+				GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &AHDTrackerBot::DamageSelf, SelfDamageInterval, true, 0.0f);
+			}
 
 			UGameplayStatics::SpawnSoundAttached(SelfDestructSound, RootComponent);
 		}

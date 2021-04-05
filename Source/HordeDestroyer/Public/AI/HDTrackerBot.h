@@ -87,6 +87,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	USoundCue* ExplodeSound;
 
+	// when we have an overlapped bot, increase damage for that bot
+	int OverlappedTrackerBots;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -94,4 +97,6 @@ public:
 	// overlap override
 	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
 
+	// and stop overlapping
+	virtual void NotifyActorEndOverlap(AActor* OtherActor) override;
 };

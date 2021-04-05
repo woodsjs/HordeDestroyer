@@ -46,7 +46,12 @@ AHDTrackerBot::AHDTrackerBot()
 	TargetOverlapComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	TargetOverlapComp->SetSphereRadius(200);
 	TargetOverlapComp->SetCollisionResponseToAllChannels(ECR_Ignore);
-	TargetOverlapComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+
+	// for our multiplier on the trackerbot
+	TargetOverlapComp->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+
+	// for our pawn
+	//TargetOverlapComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
 	TargetOverlapComp->SetupAttachment(RootComponent);
 
@@ -134,6 +139,8 @@ void AHDTrackerBot::Tick(float DeltaTime)
 		}
 	}
 
+
+
 	// attenuate the sound of teh audio as the ball rolls
 	//const float CurrentVelocity = GetVelocity().Size();
 	// This is map range clamped from blueprint
@@ -182,7 +189,7 @@ void AHDTrackerBot::SelfDestruct()
 	// we don't need to attach, since we're exploding anyway
 	UGameplayStatics::PlaySoundAtLocation(this, ExplodeSound, GetActorLocation());
 
-	if ( GetLocalRole() == ROLE_Authority )
+	if (GetLocalRole() == ROLE_Authority)
 	{
 		TArray<AActor*> IgnoreActor;
 		IgnoreActor.Add(this);
@@ -209,13 +216,13 @@ void AHDTrackerBot::NotifyActorBeginOverlap(AActor* OtherActor)
 {
 	if (!bStartedSelfDestruction && !bExploded)
 	{
-		bStartedSelfDestruction = true;
 
 		AHDCharacter* PlayerPawn = Cast<AHDCharacter>(OtherActor);
 
 		// overlapped a player
 		if (PlayerPawn)
 		{
+			bStartedSelfDestruction = true;
 
 			if (GetLocalRole() == ROLE_Authority)
 			{
@@ -225,5 +232,30 @@ void AHDTrackerBot::NotifyActorBeginOverlap(AActor* OtherActor)
 
 			UGameplayStatics::SpawnSoundAttached(SelfDestructSound, RootComponent);
 		}
+
+		AHDTrackerBot* TrackerActor = Cast<AHDTrackerBot>(OtherActor);
+		if (TrackerActor)
+		{
+			// set count
+			UE_LOG(LogTemp, Log, TEXT("Overlapped a tracker bot"));
+			OverlappedTrackerBots += 1;
+			UE_LOG(LogTemp, Log, TEXT("Bot count is now %d"), OverlappedTrackerBots);
+
+		}
+
+	}
+}
+
+// we want to decrement our trackerbot count when they leave
+void AHDTrackerBot::NotifyActorEndOverlap(AActor* OtherActor)
+{
+	AHDTrackerBot* TrackerActor = Cast<AHDTrackerBot>(OtherActor);
+	if (TrackerActor)
+	{
+		// set count
+		UE_LOG(LogTemp, Log, TEXT("Removed a tracker bot"));
+		OverlappedTrackerBots -= 1;
+		UE_LOG(LogTemp, Log, TEXT("Bot count is now %d"), OverlappedTrackerBots);
+
 	}
 }

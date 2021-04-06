@@ -51,7 +51,7 @@ AHDTrackerBot::AHDTrackerBot()
 	TargetOverlapComp->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
 
 	// for our pawn
-	//TargetOverlapComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	TargetOverlapComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
 	TargetOverlapComp->SetupAttachment(RootComponent);
 
@@ -61,6 +61,7 @@ AHDTrackerBot::AHDTrackerBot()
 	ExplosionDamage = 40;
 	ExplosionRadius = 200;
 	SelfDamageInterval = 0.25f;
+	MultiBotDamageMultiplier = 2;
 }
 
 // Called when the game starts or when spawned
@@ -124,8 +125,6 @@ void AHDTrackerBot::Tick(float DeltaTime)
 			ForceDirection *= MovementForce;
 
 			MeshComp->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
-
-			//NextPathPoint = GetNextPathPoint();
 
 			if (DebugTrackerBotDrawing > 0)
 			{
@@ -194,14 +193,25 @@ void AHDTrackerBot::SelfDestruct()
 		TArray<AActor*> IgnoreActor;
 		IgnoreActor.Add(this);
 
+		// when we overlap other tracker bots, we want to increase the damage power of the bot 
+		// we do this with a multiplier, and the num of overlapped tracker bots
+		// Not sure why, but there are times when we have less than 0 overlapped bots
+		ExplosionDamage = (OverlappedTrackerBots <= 0) ? ExplosionDamage : ExplosionDamage * (MultiBotDamageMultiplier * OverlappedTrackerBots);
+
+		if (DebugTrackerBotDrawing > 0)
+		{
+			DrawDebugString(GetWorld(), NextPathPoint, FString::SanitizeFloat( ExplosionDamage), this, FColor::Red, 2.0f, false, 2.0f);
+			UE_LOG(LogTemp, Log, TEXT("Blewd up %f"), ExplosionDamage);
+		}
+
 		UGameplayStatics::ApplyRadialDamage(this, ExplosionDamage, GetActorLocation(), ExplosionRadius, nullptr, IgnoreActor, this, GetInstigatorController(), true);
 
 		if (DebugTrackerBotDrawing > 0)
 		{
-			DrawDebugSphere(GetWorld(), NextPathPoint, ExplosionRadius, 16, FColor::Red, false, 2.0f);
+			DrawDebugSphere(GetWorld(), NextPathPoint, ExplosionDamage, 16, FColor::Red, false, 2.0f);
 		}
 
-		SetLifeSpan(1);
+		SetLifeSpan(0.1);
 		//Destroy();
 	}
 
@@ -237,10 +247,17 @@ void AHDTrackerBot::NotifyActorBeginOverlap(AActor* OtherActor)
 		if (TrackerActor)
 		{
 			// set count
-			UE_LOG(LogTemp, Log, TEXT("Overlapped a tracker bot"));
 			OverlappedTrackerBots += 1;
-			UE_LOG(LogTemp, Log, TEXT("Bot count is now %d"), OverlappedTrackerBots);
 
+			if (MatInst == nullptr)
+			{
+				MatInst = MeshComp->CreateAndSetMaterialInstanceDynamicFromMaterial(0, MeshComp->GetMaterial(0));
+			}
+
+			if (MatInst)
+			{
+				MatInst->SetScalarParameterValue("PowerLevelAlpha", OverlappedTrackerBots);
+			}
 		}
 
 	}
@@ -253,9 +270,17 @@ void AHDTrackerBot::NotifyActorEndOverlap(AActor* OtherActor)
 	if (TrackerActor)
 	{
 		// set count
-		UE_LOG(LogTemp, Log, TEXT("Removed a tracker bot"));
 		OverlappedTrackerBots -= 1;
-		UE_LOG(LogTemp, Log, TEXT("Bot count is now %d"), OverlappedTrackerBots);
 
+
+		if (MatInst == nullptr)
+		{
+			MatInst = MeshComp->CreateAndSetMaterialInstanceDynamicFromMaterial(0, MeshComp->GetMaterial(0));
+		}
+
+		if (MatInst)
+		{
+			MatInst->SetScalarParameterValue("PowerLevelAlpha", OverlappedTrackerBots);
+		}
 	}
 }

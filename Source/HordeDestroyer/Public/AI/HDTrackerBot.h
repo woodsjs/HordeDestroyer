@@ -87,8 +87,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	USoundCue* ExplodeSound;
 
+	// overlap reaction to other trackerbots
 	// when we have an overlapped bot, increase damage for that bot
 	int OverlappedTrackerBots;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	float MultiBotDamageMultiplier;
 
 public:	
 	// Called every frame

@@ -8,6 +8,7 @@
 
 class USphereComponent;
 class UDecalComponent;
+class AHDPowerupActor;
 
 UCLASS()
 class HORDEDESTROYER_API AHDPickupActor : public AActor
@@ -23,10 +24,24 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
-	USphereComponent* SphereCmp;
+	USphereComponent* SphereComp;
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UDecalComponent* DecalComp;
+
+	UPROPERTY(EditDefaultsOnly, Category = "PickupActor")
+	TSubclassOf<AHDPowerupActor> PowerupClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "PickupActor")
+	float CoolDownDuration;
+
+	FTimerHandle TimerHandle_RespawnTimer;
+
+	UFUNCTION()
+	void Respawn();
+
+	AHDPowerupActor* PowerupInstance;
+
 public:	
 	// overlap override
 	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;

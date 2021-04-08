@@ -4,13 +4,14 @@
 #include "HDPickupActor.h"
 #include "Components/SphereComponent.h"
 #include "Components/DecalComponent.h"
+#include "HDPowerupActor.h"
 
 // Sets default values
 AHDPickupActor::AHDPickupActor()
 {
-	SphereCmp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
-	SphereCmp->SetSphereRadius(75.0f);
-	RootComponent = SphereCmp;
+	SphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
+	SphereComp->SetSphereRadius(75.0f);
+	RootComponent = SphereComp;
 
 	DecalComp = CreateDefaultSubobject<UDecalComponent>(TEXT("DecalComp"));
 	DecalComp->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f));
@@ -25,12 +26,33 @@ void AHDPickupActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	Respawn();
+}
+
+void AHDPickupActor::Respawn()
+{
+	if (PowerupClass == nullptr)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Powerup Class is %s. Please update your blueprint"), *GetName());
+		return;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	PowerupInstance = GetWorld()->SpawnActor<AHDPowerupActor>(PowerupClass, GetTransform(), SpawnParams);
 }
 
 void AHDPickupActor::NotifyActorBeginOverlap(AActor* OtherActor)
 {
 	Super::NotifyActorBeginOverlap(OtherActor);
 
-	// TODO: Grant a powerup to player if available
+	if (PowerupInstance)
+	{
+		PowerupInstance->ActivatePowerup();
+		PowerupInstance = nullptr;
+
+		GetWorldTimerManager().SetTimer(TimerHandle_RespawnTimer, this, &AHDPickupActor::Respawn, CoolDownDuration);
+	}
 }
 

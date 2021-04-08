@@ -21,11 +21,11 @@ protected:
 
 	/* Time between powerup ticks */
 	UPROPERTY(EditDefaultsOnly, Category = "Powerups")
-	float PowerupInterval;
+	float PowerupCooldown;
 
 	/* Total times we apply the powerup effect*/
 	UPROPERTY(EditDefaultsOnly, Category = "Powerups")
-	int32 TotalNumberOfTicks;
+	int32 MaxTicks;
 
 	FTimerHandle TimerHandle_PowerupTick;
 

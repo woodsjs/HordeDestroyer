@@ -8,8 +8,8 @@ AHDPowerupActor::AHDPowerupActor()
 {
 
 
-	PowerupInterval = 0.0f;
-	TotalNumberOfTicks = 0.0f;
+	PowerupCooldown = 0.0f;
+	MaxTicks = 0.0f;
 }
 
 // Called when the game starts or when spawned
@@ -25,7 +25,7 @@ void AHDPowerupActor::onTickPowerup()
 
 	OnPowerupTicked();
 
-	if (TotalNumberOfTicks <= TicksProcessed)
+	if (MaxTicks < TicksProcessed)
 	{
 		OnExpired();
 
@@ -35,9 +35,11 @@ void AHDPowerupActor::onTickPowerup()
 
 void AHDPowerupActor::ActivatePowerup()
 {
-	if (PowerupInterval > 0.0f)
+	OnActivated();
+
+	if (PowerupCooldown > 0.0f)
 	{
-		GetWorldTimerManager().SetTimer(TimerHandle_PowerupTick, this, &AHDPowerupActor::onTickPowerup, PowerupInterval, true, 0.0f);
+		GetWorldTimerManager().SetTimer(TimerHandle_PowerupTick, this, &AHDPowerupActor::onTickPowerup, PowerupCooldown, true, 0.0f);
 	}
 	else {
 		onTickPowerup();

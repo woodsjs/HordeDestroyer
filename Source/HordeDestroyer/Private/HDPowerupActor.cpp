@@ -22,15 +22,18 @@ void AHDPowerupActor::BeginPlay()
 void AHDPowerupActor::onTickPowerup()
 {
 	TicksProcessed++;
-
-	OnPowerupTicked();
+	UE_LOG(LogTemp, Log, TEXT("TicksProcessed: %i - MaxTicks: %i"), TicksProcessed, MaxTicks);
 
 	if (MaxTicks < TicksProcessed)
 	{
+		UE_LOG(LogTemp, Log, TEXT("We expired"));
 		OnExpired();
 
 		GetWorldTimerManager().ClearTimer(TimerHandle_PowerupTick);
 	}
+
+	OnPowerupTicked();
+
 }
 
 void AHDPowerupActor::ActivatePowerup()

@@ -18,7 +18,9 @@ AHDPickupActor::AHDPickupActor()
 	DecalComp->DecalSize = FVector(64.0f, 75.0f, 75.0f);
 	DecalComp->SetupAttachment(RootComponent);
 
+	SetReplicates(true);
 
+	CoolDownDuration = 10.0f;
 }
 
 // Called when the game starts or when spawned
@@ -26,7 +28,10 @@ void AHDPickupActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	Respawn();
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		Respawn();
+	}
 }
 
 void AHDPickupActor::Respawn()
@@ -47,7 +52,7 @@ void AHDPickupActor::NotifyActorBeginOverlap(AActor* OtherActor)
 {
 	Super::NotifyActorBeginOverlap(OtherActor);
 
-	if (PowerupInstance)
+	if ( GetLocalRole() == ROLE_Authority && PowerupInstance)
 	{
 		PowerupInstance->ActivatePowerup();
 		PowerupInstance = nullptr;

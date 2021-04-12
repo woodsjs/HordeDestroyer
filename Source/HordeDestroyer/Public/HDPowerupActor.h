@@ -34,6 +34,20 @@ protected:
 
 	UFUNCTION()
 	void onTickPowerup();
+
+	// Need to alert that the powerup was made active
+	// so we can respond to that in blueprint
+	UPROPERTY(ReplicatedUsing=OnRep_PowerupActive)
+	bool bIsPowerupActive;
+
+	UFUNCTION()
+	void OnRep_PowerupActive();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Powerups")
+	void OnPowerupActiveChanged(bool bNewIsActive);
+
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 public:
 
 	void ActivatePowerup();

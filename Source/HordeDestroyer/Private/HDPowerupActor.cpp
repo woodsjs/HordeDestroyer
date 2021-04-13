@@ -50,9 +50,9 @@ void AHDPowerupActor::OnRep_PowerupActive()
 }
 
 /* This is only called on the server, per HDPickupActor */
-void AHDPowerupActor::ActivatePowerup()
+void AHDPowerupActor::ActivatePowerup(AActor* ActivateFor)
 {
-	OnActivated();
+	OnActivated(ActivateFor);
 
 	bIsPowerupActive = true;
 	// this isn't called on the server

@@ -54,7 +54,7 @@ void AHDPickupActor::NotifyActorBeginOverlap(AActor* OtherActor)
 
 	if ( GetLocalRole() == ROLE_Authority && PowerupInstance)
 	{
-		PowerupInstance->ActivatePowerup();
+		PowerupInstance->ActivatePowerup(OtherActor);
 		PowerupInstance = nullptr;
 
 		GetWorldTimerManager().SetTimer(TimerHandle_RespawnTimer, this, &AHDPickupActor::Respawn, CoolDownDuration);

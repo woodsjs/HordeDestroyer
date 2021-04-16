@@ -79,6 +79,16 @@ protected:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player")
 	bool bDied;
 
+	UFUNCTION()
+	void onRep_IsInvisible(bool bOldVisiblility);
+
+	// we're invisible
+	UPROPERTY(ReplicatedUsing=onRep_IsInvisible, BlueprintReadWrite, Category = "Player")
+	bool bInvisible;
+
+	UFUNCTION(BlueprintCallable, Category="Player")
+	void SetInvisibility(bool bNewInvisible);
+
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:	

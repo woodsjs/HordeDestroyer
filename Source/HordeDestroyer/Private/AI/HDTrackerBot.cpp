@@ -266,6 +266,8 @@ void AHDTrackerBot::NotifyActorBeginOverlap(AActor* OtherActor)
 // we want to decrement our trackerbot count when they leave
 void AHDTrackerBot::NotifyActorEndOverlap(AActor* OtherActor)
 {
+	// TODO: Add call to super here
+
 	AHDTrackerBot* TrackerActor = Cast<AHDTrackerBot>(OtherActor);
 	if (TrackerActor)
 	{

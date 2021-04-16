@@ -146,12 +146,36 @@ void AHDCharacter::OnHealthChanged(UHDHealthComponent* HealthComp, float Health,
 	}
 }
 
+void AHDCharacter::onRep_IsInvisible(bool bOldVisiblility)
+{
+
+	// get skeletel mesh
+	this->GetMesh()->SetOnlyOwnerSee(!bOldVisiblility);
+
+}
+
+void AHDCharacter::SetInvisibility(bool bNewInvisible)
+{
+	bInvisible = bNewInvisible;
+
+
+	//if (GetLocalRole() == ROLE_Authority)
+	//{
+	//	UE_LOG(LogTemp, Log, TEXT("Why aint you doin"));
+	//	USkeletalMesh* SkeleMesh = GetMesh()->SkeletalMesh;
+
+	//	Cast<UPrimitiveComponent>(SkeleMesh)->SetOnlyOwnerSee(bNewInvisible);
+	//	//UE_LOG(LogTemp, Log, TEXT("You are %d"), Cast<UPrimitiveComponent>(SkeleMesh)->bOnlyOwnerSee);
+	//}
+}
+
 void AHDCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AHDCharacter, CurrentWeapon);
 	DOREPLIFETIME(AHDCharacter, bDied);
+	DOREPLIFETIME(AHDCharacter, bInvisible);
 }
 
 // Called every frame

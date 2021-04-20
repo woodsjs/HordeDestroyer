@@ -87,7 +87,7 @@ FVector AHDTrackerBot::GetNextPathPoint()
 	{
 		UNavigationPath* NavPath = UNavigationSystemV1::FindPathToActorSynchronously(this, GetActorLocation(), PlayerPawn);
 
-		if (NavPath->PathPoints.Num() > 1)
+		if (NavPath && NavPath->PathPoints.Num() > 1)
 		{
 			// get next point in path. First point is current location
 			return NavPath->PathPoints[1];

@@ -112,6 +112,11 @@ void UHDHealthComponent::Heal(float HealAmount)
 
 }
 
+float UHDHealthComponent::GetHealth() const
+{
+	return Health;
+}
+
 void UHDHealthComponent::onRep_Health(float OldHealth)
 {
 	float Damage = Health - OldHealth;

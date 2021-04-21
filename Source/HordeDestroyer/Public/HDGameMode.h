@@ -6,6 +6,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "HDGameMode.generated.h"
 
+enum class EWaveState : uint8;
+
 /**
  * 
  */
@@ -28,22 +30,28 @@ protected:
 
 protected:
 
-	// hook for BP to spawn single bot
-	UFUNCTION(BlueprintImplementableEvent, Category="GameMode")
-	void SpawnNewBot();
+	virtual void StartPlay() override;
+
+	void SetWaveState(EWaveState NewWaveState);
+
+	void StartWave();
 
 	void SpawnBotTimerElapsed();
 
-	void StartWave();
+	// hook for BP to spawn single bot
+	UFUNCTION(BlueprintImplementableEvent, Category = "GameMode")
+	void SpawnNewBot();
 
 	void EndWave();
 
 	// Set timer for next bot wave
 	void PrepareForNextWave();
-	
-	virtual void StartPlay() override;
 
 	void CheckWaveState();
+
+	void CheckAnyPlayerAlive();
+
+	void GameOver();
 
 public:
 	AHDGameMode();

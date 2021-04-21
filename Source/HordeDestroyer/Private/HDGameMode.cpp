@@ -3,10 +3,13 @@
 
 #include "HDGameMode.h"
 #include "Components/HDHealthComponent.h"
+#include "HDGameState.h"
 
 AHDGameMode::AHDGameMode()
 {
 	TimeBetweenWaves = 2.0f;
+
+	GameStateClass = AHDGameState::StaticClass();
 
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickInterval = 1.0f;
@@ -18,10 +21,21 @@ void AHDGameMode::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	CheckWaveState();
+	CheckAnyPlayerAlive();
+}
+
+
+void AHDGameMode::StartPlay()
+{
+	Super::StartPlay();
+
+	PrepareForNextWave();
 }
 
 void AHDGameMode::StartWave()
 {
+	SetWaveState(EWaveState::WaveInProgress);
+
 	WaveCount++;
 
 	NrOfBotsToSpawn = 2 * WaveCount;
@@ -31,6 +45,8 @@ void AHDGameMode::StartWave()
 
 void AHDGameMode::EndWave()
 {
+	SetWaveState(EWaveState::WaveComplete);
+
 	GetWorldTimerManager().ClearTimer(TimerHandle_BotSpawner);
 
 	//PrepareForNextWave();
@@ -38,15 +54,11 @@ void AHDGameMode::EndWave()
 
 void AHDGameMode::PrepareForNextWave()
 {
+	SetWaveState(EWaveState::WaitingToStart);
+
 	GetWorldTimerManager().SetTimer(TimerHandle_NextWaveStart, this, &AHDGameMode::StartWave, TimeBetweenWaves , false, 0.0f);
 }
 
-void AHDGameMode::StartPlay()
-{
-	Super::StartPlay();
-
-	PrepareForNextWave();
-}
 
 void AHDGameMode::CheckWaveState()
 {
@@ -87,6 +99,47 @@ void AHDGameMode::CheckWaveState()
 	if (!bIsAnyBotAlive)
 	{
 		PrepareForNextWave();
+	}
+}
+
+void AHDGameMode::CheckAnyPlayerAlive()
+{
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PC = It->Get();
+		if (PC && PC->GetPawn())
+		{
+			APawn* MyPawn = PC->GetPawn();
+			UHDHealthComponent* HealthComp = Cast<UHDHealthComponent>(MyPawn->GetComponentByClass(UHDHealthComponent::StaticClass()));
+
+			if (ensure(HealthComp) && HealthComp->GetHealth() > 0.0f)
+			{
+				// a player is still alive
+				return;
+			}
+		}
+
+		// no player alive
+		GameOver();
+	}
+}
+
+void AHDGameMode::GameOver()
+{
+	EndWave();
+
+	// TODO: Finish the match, present game over to players
+	SetWaveState(EWaveState::GameOver);
+	UE_LOG(LogTemp, Log, TEXT("Game Over. Players died."));
+}
+
+void AHDGameMode::SetWaveState(EWaveState NewWaveState)
+{
+	AHDGameState* GS = GetGameState<AHDGameState>();
+
+	if (ensureAlways(GS))
+	{
+		GS->WaveState = NewWaveState;
 	}
 }
 

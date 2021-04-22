@@ -8,6 +8,9 @@
 
 enum class EWaveState : uint8;
 
+// Who was killed, who was the killer. This is going to be used to set a score
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnActorKilled, AActor*, VictimActor, AActor*, KillerActor, AController*, KillerController);
+
 /**
  * 
  */
@@ -57,4 +60,7 @@ public:
 	AHDGameMode();
 
 	virtual void Tick(float DeltaSeconds) override;
+
+	UPROPERTY(BlueprintAssignable, Category="GameMode")
+	FOnActorKilled OnActorKilled;
 };

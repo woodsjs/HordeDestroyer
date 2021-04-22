@@ -4,12 +4,14 @@
 #include "HDGameMode.h"
 #include "Components/HDHealthComponent.h"
 #include "HDGameState.h"
+#include "HDPlayerState.h"
 
 AHDGameMode::AHDGameMode()
 {
 	TimeBetweenWaves = 2.0f;
 
 	GameStateClass = AHDGameState::StaticClass();
+	PlayerStateClass = AHDPlayerState::StaticClass();
 
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickInterval = 1.0f;
@@ -92,7 +94,6 @@ void AHDGameMode::CheckWaveState()
 		if (HealthComponent && HealthComponent->GetHealth() > 0.0f)
 		{
 			bIsAnyBotAlive = true;
-			UE_LOG(LogTemp, Log, TEXT("There is still a bot alive"));
 			break;
 		}
 	}
@@ -117,7 +118,6 @@ void AHDGameMode::CheckAnyPlayerAlive()
 			if (ensure(HealthComp) && HealthComp->GetHealth() > 0.0f)
 			{
 				// a player is still alive
-				UE_LOG(LogTemp, Log, TEXT("A plyer is alive"));
 				return;
 			}
 		}

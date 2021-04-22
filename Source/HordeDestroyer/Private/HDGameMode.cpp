@@ -45,7 +45,7 @@ void AHDGameMode::StartWave()
 
 void AHDGameMode::EndWave()
 {
-	SetWaveState(EWaveState::WaveComplete);
+	SetWaveState(EWaveState::WaitingToComplete);
 
 	GetWorldTimerManager().ClearTimer(TimerHandle_BotSpawner);
 
@@ -92,12 +92,14 @@ void AHDGameMode::CheckWaveState()
 		if (HealthComponent && HealthComponent->GetHealth() > 0.0f)
 		{
 			bIsAnyBotAlive = true;
+			UE_LOG(LogTemp, Log, TEXT("There is still a bot alive"));
 			break;
 		}
 	}
 
 	if (!bIsAnyBotAlive)
 	{
+		SetWaveState(EWaveState::WaveComplete);
 		PrepareForNextWave();
 	}
 }
@@ -115,6 +117,7 @@ void AHDGameMode::CheckAnyPlayerAlive()
 			if (ensure(HealthComp) && HealthComp->GetHealth() > 0.0f)
 			{
 				// a player is still alive
+				UE_LOG(LogTemp, Log, TEXT("A plyer is alive"));
 				return;
 			}
 		}
@@ -130,7 +133,6 @@ void AHDGameMode::GameOver()
 
 	// TODO: Finish the match, present game over to players
 	SetWaveState(EWaveState::GameOver);
-	UE_LOG(LogTemp, Log, TEXT("Game Over. Players died."));
 }
 
 void AHDGameMode::SetWaveState(EWaveState NewWaveState)
@@ -139,7 +141,8 @@ void AHDGameMode::SetWaveState(EWaveState NewWaveState)
 
 	if (ensureAlways(GS))
 	{
-		GS->WaveState = NewWaveState;
+		//GS->WaveState = NewWaveState;
+		GS->SetWaveState(NewWaveState);
 	}
 }
 

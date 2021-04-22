@@ -15,3 +15,19 @@ void AHDGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 
 	DOREPLIFETIME(AHDGameState, WaveState);
 }
+
+/*Changing a property that is replicated via OnRep Notify, only triggers that notify
+  on the clients. So we need to handle this on the server too! 
+  
+  This method manually triggers OnRep_WaveState for the server only*/
+void AHDGameState::SetWaveState(EWaveState NewWaveState)
+{
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		EWaveState OldState = WaveState;
+		WaveState = NewWaveState;
+
+
+		OnRep_WaveState(OldState);
+	}
+}

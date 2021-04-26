@@ -57,6 +57,8 @@ void AHDGameMode::EndWave()
 void AHDGameMode::PrepareForNextWave()
 {
 	SetWaveState(EWaveState::WaitingToStart);
+	
+	RespawnDeadPlayers();
 
 	GetWorldTimerManager().SetTimer(TimerHandle_NextWaveStart, this, &AHDGameMode::StartWave, TimeBetweenWaves , false, 0.0f);
 }
@@ -133,6 +135,20 @@ void AHDGameMode::GameOver()
 
 	// TODO: Finish the match, present game over to players
 	SetWaveState(EWaveState::GameOver);
+}
+
+void AHDGameMode::RespawnDeadPlayers()
+{
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PC = It->Get();
+		// if the pawn is null, the player is dead
+		if (PC && PC->GetPawn() == nullptr)
+		{
+			RestartPlayer(PC);
+		}
+	}
 }
 
 void AHDGameMode::SetWaveState(EWaveState NewWaveState)

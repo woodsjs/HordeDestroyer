@@ -56,6 +56,8 @@ protected:
 
 	void GameOver();
 
+	void RespawnDeadPlayers();
+
 public:
 	AHDGameMode();
 

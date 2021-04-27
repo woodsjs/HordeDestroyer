@@ -46,6 +46,7 @@
 
 #include "Components/HDHealthComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "HDGameMode.h"
 
 // Sets default values for this component's properties
 UHDHealthComponent::UHDHealthComponent()
@@ -55,6 +56,7 @@ UHDHealthComponent::UHDHealthComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	DefaultHealth = 100.0f;
 
+	bIsDead = false;
 	//SetIsReplicated(true);
 
 	// ...
@@ -83,7 +85,7 @@ void UHDHealthComponent::BeginPlay()
 // stole this code
 void UHDHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
 {
-	if (Damage <= 0.0f)
+	if (Damage <= 0.0f || bIsDead)
 	{
 		return;
 	}
@@ -92,10 +94,22 @@ void UHDHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage,
 
 	//UE_LOG(LogTemp, Log, TEXT("Health Changed: %s"), *FString::SanitizeFloat(Health));
 
+	bIsDead = GetHealth() <= 0.0f;
+
 	if (GetOwner()->GetLocalRole() == ROLE_Authority)
 	{
 		OnHealthChanged.Broadcast(this, Health, Damage, DamageType, InstigatedBy, DamageCauser);
 	}
+
+	if (bIsDead)
+	{
+		AHDGameMode* GM = Cast<AHDGameMode>(GetWorld()->GetAuthGameMode());
+		if (GM)
+		{
+			GM->OnActorKilled.Broadcast(GetOwner(), DamageCauser, InstigatedBy);
+		}
+	}
+
 }
 
 void UHDHealthComponent::Heal(float HealAmount)
@@ -110,6 +124,11 @@ void UHDHealthComponent::Heal(float HealAmount)
 
 	OnHealthChanged.Broadcast(this, Health, -HealAmount, nullptr, nullptr, nullptr);
 
+}
+
+float UHDHealthComponent::GetHealth() const
+{
+	return Health;
 }
 
 void UHDHealthComponent::onRep_Health(float OldHealth)

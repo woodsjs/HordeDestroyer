@@ -60,6 +60,7 @@ UHDHealthComponent::UHDHealthComponent()
 	//SetIsReplicated(true);
 
 	// ...
+	TeamNum = 255;
 }
 
 
@@ -90,6 +91,12 @@ void UHDHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage,
 		return;
 	}
 
+	// Don't allow friendly fire
+	if ( DamageCauser != DamagedActor && IsFriendly(DamagedActor, DamageCauser))
+	{
+		return;
+	}
+
 	Health = FMath::Clamp(Health - Damage, 0.0f, DefaultHealth);
 
 	//UE_LOG(LogTemp, Log, TEXT("Health Changed: %s"), *FString::SanitizeFloat(Health));
@@ -114,7 +121,7 @@ void UHDHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage,
 
 void UHDHealthComponent::Heal(float HealAmount)
 {
-	if (HealAmount <= 0.0f || Health <= 0.0f )
+	if (HealAmount <= 0.0f || Health <= 0.0f)
 	{
 		return;
 	}
@@ -129,6 +136,24 @@ void UHDHealthComponent::Heal(float HealAmount)
 float UHDHealthComponent::GetHealth() const
 {
 	return Health;
+}
+
+bool UHDHealthComponent::IsFriendly(AActor* ActorA, AActor* ActorB)
+{
+	if(ActorA == nullptr || ActorB == nullptr)
+	{
+		return true;
+	}
+
+	UHDHealthComponent* HealthComponentA = Cast<UHDHealthComponent>(ActorA->GetComponentByClass(UHDHealthComponent::StaticClass()));
+	UHDHealthComponent* HealthComponentB = Cast<UHDHealthComponent>(ActorB->GetComponentByClass(UHDHealthComponent::StaticClass()));
+
+	if (HealthComponentA == nullptr || HealthComponentB == nullptr)
+	{
+		return true;
+	}
+
+	return HealthComponentA->TeamNum == HealthComponentB->TeamNum;
 }
 
 void UHDHealthComponent::onRep_Health(float OldHealth)

@@ -94,6 +94,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	float MultiBotDamageMultiplier;
 
+	// this is used if the bot is stuck somewhere, to have them try a new path
+	FTimerHandle TimerHandle_RefreshPath;
+
+	// Yuck. Hack to get our getnextpathpoint to return null for our timer
+	void RefreshPath();
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

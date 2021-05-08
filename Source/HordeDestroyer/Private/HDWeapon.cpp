@@ -42,6 +42,7 @@ AHDWeapon::AHDWeapon()
 	// reduce latency. 33FPS vs 66FPS
 	NetUpdateFrequency = 66.0f;
 	MinNetUpdateFrequency = 33.0f;
+	BulletSpread = 1.0f;
 }
 
 void AHDWeapon::BeginPlay()
@@ -73,6 +74,10 @@ void AHDWeapon::Fire()
 		MyOwner->GetActorEyesViewPoint(EyeLocation, EyeRotation);
 
 		FVector ShotDirection = EyeRotation.Vector();
+
+		// introducting bullet spread
+		float HalfRad = FMath::DegreesToRadians(BulletSpread);
+		ShotDirection = FMath::VRandCone(ShotDirection, HalfRad, HalfRad);
 
 		// We use 10k as the multiplier because that's kind of standard. 
 		// This allows the trace to go "far enough" to hit something.
@@ -110,7 +115,7 @@ void AHDWeapon::Fire()
 				ActualDamage *= 4.0f;
 			}
 
-			UGameplayStatics::ApplyPointDamage(HitActor, ActualDamage, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType);
+			UGameplayStatics::ApplyPointDamage(HitActor, ActualDamage, ShotDirection, Hit, MyOwner->GetInstigatorController(), MyOwner, DamageType);
 
 			PlayImpactEffects(SurfaceType, Hit.ImpactPoint);
 

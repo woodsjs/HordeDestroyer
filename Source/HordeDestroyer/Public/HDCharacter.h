@@ -58,10 +58,6 @@ protected:
 
 	void Fire();
 
-	void StartFire();
-	
-	void StopFire();
-
 	UPROPERTY(EditDefaultsOnly, Category = "Player")
 	TSubclassOf<AHDWeapon> StarterWeaponClass;
 
@@ -99,4 +95,11 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual FVector GetPawnViewLocation() const override;
+
+	// For the AI, we want to call these outside the character, in the behaviour tree.
+	UFUNCTION(BlueprintCallable, Category = "Player")
+		void StartFire();
+
+	UFUNCTION(BlueprintCallable, Category = "Player")
+		void StopFire();
 };

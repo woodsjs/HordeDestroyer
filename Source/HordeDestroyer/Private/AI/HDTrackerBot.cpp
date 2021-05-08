@@ -81,12 +81,42 @@ void AHDTrackerBot::BeginPlay()
 FVector AHDTrackerBot::GetNextPathPoint()
 {
 	// hack to get player location
-	ACharacter* PlayerPawn = UGameplayStatics::GetPlayerCharacter(this, 0);
+	//ACharacter* PlayerPawn = UGameplayStatics::GetPlayerCharacter(this, 0);
 
-	if (PlayerPawn)
+	AActor* BestTarget = nullptr;
+	float NearestTargetDistance = FLT_MAX;
+
+	for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; ++It)
 	{
-		UNavigationPath* NavPath = UNavigationSystemV1::FindPathToActorSynchronously(this, GetActorLocation(), PlayerPawn);
+		APawn* TestPawn = It->Get();
 
+		if (TestPawn == nullptr || UHDHealthComponent::IsFriendly(TestPawn, this)) // TestPawn->IsPlayerControlled())
+		{
+			continue;
+		}
+
+		UHDHealthComponent* HealthComponent = Cast<UHDHealthComponent>(TestPawn->GetComponentByClass(UHDHealthComponent::StaticClass()));
+		if (HealthComponent && HealthComponent->GetHealth() > 0.0f)
+		{
+			float Distance = (TestPawn->GetActorLocation() - GetActorLocation()).Size();
+
+			if (Distance < NearestTargetDistance)
+			{
+				BestTarget = TestPawn;
+				NearestTargetDistance = Distance;
+			}
+		}
+	}
+
+	//if (PlayerPawn)
+	if (BestTarget)
+	{
+		UNavigationPath* NavPath = UNavigationSystemV1::FindPathToActorSynchronously(this, GetActorLocation(), BestTarget);
+
+		// Set a timer, if we haven't reached our destination by then go ahead and repath
+		GetWorldTimerManager().ClearTimer(TimerHandle_RefreshPath);
+		GetWorldTimerManager().SetTimer(TimerHandle_RefreshPath, this, &AHDTrackerBot::RefreshPath, 5.0f, false);
+		
 		if (NavPath && NavPath->PathPoints.Num() > 1)
 		{
 			// get next point in path. First point is current location
@@ -222,6 +252,11 @@ void AHDTrackerBot::DamageSelf()
 	UGameplayStatics::ApplyDamage(this, 20, GetInstigatorController(), this, nullptr);
 }
 
+void AHDTrackerBot::RefreshPath()
+{
+	NextPathPoint = GetNextPathPoint();
+}
+
 void AHDTrackerBot::NotifyActorBeginOverlap(AActor* OtherActor)
 {
 	if (!bStartedSelfDestruction && !bExploded)
@@ -230,7 +265,7 @@ void AHDTrackerBot::NotifyActorBeginOverlap(AActor* OtherActor)
 		AHDCharacter* PlayerPawn = Cast<AHDCharacter>(OtherActor);
 
 		// overlapped a player
-		if (PlayerPawn)
+		if (PlayerPawn && !UHDHealthComponent::IsFriendly(OtherActor, this))
 		{
 			bStartedSelfDestruction = true;
 

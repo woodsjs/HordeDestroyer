@@ -97,6 +97,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	UCurveFloat* VerticalRecoilCurve;
 
+	// Introducting our bullet spread in degrees
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon", meta = (ClampMin=0.0f))
+	float BulletSpread;
+
 	UFUNCTION()
 	void AddRecoil(AActor* MyOwner);
 

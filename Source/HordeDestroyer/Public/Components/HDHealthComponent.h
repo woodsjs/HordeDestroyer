@@ -18,6 +18,11 @@ public:
 	// Sets default values for this component's properties
 	UHDHealthComponent();
 
+	// TODO: SHould this really be in the health component?
+	// If you want team switching, you should replicate this
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HealthComponent")
+	uint8 TeamNum;
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -49,4 +54,7 @@ public:
 	void Heal(float HealAmount);
 
 	float GetHealth() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "HealthComponent")
+	static bool IsFriendly(AActor* ActorA, AActor* ActorB);
 };
